@@ -659,7 +659,7 @@ export function DashboardPage() {
                           }}
                         >
                           <Avatar
-                            src={selectedPlayerProfile?.playerId ? "" : mockPlayerProfile.imageUrl}
+                            src={selectedPlayerProfile?.imageUrl || mockPlayerProfile.imageUrl}
                             sx={{
                               width: 64,
                               height: 64,
@@ -804,7 +804,7 @@ export function DashboardPage() {
                                           width: `${maintenanceWidth}%`,
                                           minWidth: "40px",
                                           height: "24px",
-                                          backgroundColor: row["Maintenance session"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          backgroundColor: row["Maintenance sessions"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
                                           borderRadius: "2px",
                                           display: "flex",
                                           alignItems: "center",
@@ -812,10 +812,10 @@ export function DashboardPage() {
                                           paddingRight: "8px",
                                         }}
                                       />
-                                      <Typography variant="body2">{row["Maintenance session"]}</Typography>
+                                      <Typography variant="body2">{row["Maintenance sessions"]}</Typography>
                                     </Box>
                                   </TableCell>
-                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance session"]}</TableCell>
+                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance sessions"]}</TableCell>
                                 </TableRow>
                               );
                             })}
@@ -1024,7 +1024,7 @@ export function DashboardPage() {
                                           width: `${maintenanceWidth}%`,
                                           minWidth: "40px",
                                           height: "24px",
-                                          backgroundColor: row["Maintenance session"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          backgroundColor: row["Maintenance sessions"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
                                           borderRadius: "2px",
                                           display: "flex",
                                           alignItems: "center",
@@ -1032,10 +1032,10 @@ export function DashboardPage() {
                                           paddingRight: "8px",
                                         }}
                                       />
-                                      <Typography variant="body2">{row["Maintenance session"]}</Typography>
+                                      <Typography variant="body2">{row["Maintenance sessions"]}</Typography>
                                     </Box>
                                   </TableCell>
-                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance session"]}</TableCell>
+                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance sessions"]}</TableCell>
                                 </TableRow>
                               );
                             })}

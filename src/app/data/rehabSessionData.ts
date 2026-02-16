@@ -6,6 +6,7 @@
  */
 
 import { INJURY_RECORDS, InjuryRecord } from "./mockInjuryData";
+import { getImageForPlayer } from "@/app/utils/playerImages";
 
 // ==========================================
 // TYPES
@@ -210,6 +211,62 @@ function calculateSeasonType(date: Date): string {
 }
 
 /**
+ * Map injury type to anatomical body part
+ * This ensures bodyPart filter works correctly by using anatomical locations
+ */
+function mapInjuryTypeToBodyPart(injuryType: string): string {
+  const mapping: Record<string, string> = {
+    // Head/Neck
+    "Concussion": "Head",
+    "Neck Strain": "Neck",
+    
+    // Upper body
+    "Shoulder": "Shoulder",
+    "Rotator Cuff": "Shoulder",
+    "AC Joint": "Shoulder",
+    "Labral Tear": "Shoulder",
+    "Elbow": "Elbow",
+    "UCL": "Elbow",
+    "Wrist": "Wrist",
+    "Hand": "Hand",
+    "Finger": "Hand",
+    
+    // Core/Back
+    "Back": "Back",
+    "Lower Back": "Back",
+    "Lumbar Strain": "Back",
+    
+    // Lower body
+    "Hip": "Hip",
+    "Hip Flexor": "Hip",
+    "Groin": "Groin",
+    "Groin Strain": "Groin",
+    "Quad": "Quad",
+    "Quadriceps": "Quad",
+    "Hamstring": "Hamstring",
+    "Hamstring Strain": "Hamstring",
+    "Knee": "Knee",
+    "ACL": "Knee",
+    "MCL": "Knee",
+    "PCL": "Knee",
+    "Meniscus": "Knee",
+    "Patellar Tendon": "Knee",
+    "Ankle": "Ankle",
+    "Ankle Sprain": "Ankle",
+    "High Ankle Sprain": "Ankle",
+    "Foot": "Foot",
+    "Plantar Fasciitis": "Foot",
+    "Turf Toe": "Foot",
+    "Calf": "Ankle", // Calf injuries often treated with ankle
+    "Calf Strain": "Ankle",
+    "Achilles": "Ankle",
+  };
+
+  // Return mapped value or fallback to the injury type itself
+  return mapping[injuryType] || injuryType;
+}
+
+/**
  * Generate a single rehab session for an injury
  */
 function generateSession(
@@ -218,7 +275,8 @@ function generateSession(
   totalSessions: number,
   sessionDate: Date
 ): RehabSession {
-  const bodyPart = injury.bodyPart || injury.injuryType;
+  // Map injury type to proper anatomical body part for filtering
+  const bodyPart = mapInjuryTypeToBodyPart(injury.injuryType);
   const modalityWeights = getModalityWeights(bodyPart, injury.injuryType);
   const exerciseWeights = getExerciseWeights(bodyPart);
 
@@ -746,7 +804,7 @@ export function getPlayerProfile(sessions: RehabSession[], playerId: string) {
     playerId: first.playerId,
     name: first.playerName,
     position: "", // Would need to join with injury record or athlete data
-    imageUrl: "", // Placeholder
+    imageUrl: getImageForPlayer(first.playerId || first.playerName) || "",
     rehabSessions: rehabCount,
     maintenanceSessions: maintenanceCount,
     currentInjury: first.injuryType,

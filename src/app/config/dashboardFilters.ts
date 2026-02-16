@@ -59,7 +59,6 @@ const BODY_PART_OPTIONS = [
   { value: "head", label: "Head" },
   { value: "neck", label: "Neck" },
   { value: "shoulder", label: "Shoulder" },
-  { value: "arm", label: "Arm" },
   { value: "elbow", label: "Elbow" },
   { value: "wrist", label: "Wrist" },
   { value: "hand", label: "Hand" },
