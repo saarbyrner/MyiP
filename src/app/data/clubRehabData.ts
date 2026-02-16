@@ -32,15 +32,15 @@ export const daysLostByInjuryData = [
 ];
 
 export const daysLostByPlayerData = [
-  { player: "Dangelo Ritter", "Injury category": 8, "Maintenance days": 8, total: 16 },
-  { player: "Bobby Lee Olivar", "Injury category": 8, "Maintenance days": 0, total: 8 },
-  { player: "Ronnie Mike", "Injury category": 8, "Maintenance days": 8, total: 16 },
-  { player: "Borges Jose", "Injury category": 7, "Maintenance days": 10, total: 17 },
-  { player: "Campbell Tom", "Injury category": 8, "Maintenance days": 8, total: 16 },
-  { player: "Oberan M. Franklin", "Injury category": 7, "Maintenance days": 7, total: 14 },
-  { player: "Davis Matt", "Injury category": 8, "Maintenance days": 8, total: 16 },
-  { player: "Zickey Rian", "Injury category": 7, "Maintenance days": 7, total: 14 },
-  { player: "Gregory Matt", "Injury category": 10, "Maintenance days": 10, total: 20 },
+  { player: "Bargas, Jake", "Rehab days": 8, "Maintenance days": 8, total: 16 },
+  { player: "Bellinger, Daniel", "Rehab days": 9, "Maintenance days": 9, total: 18 },
+  { player: "Boone, Mike", "Rehab days": 8, "Maintenance days": 8, total: 16 },
+  { player: "Borges, Jose", "Rehab days": 10, "Maintenance days": 10, total: 20 },
+  { player: "Campbell, Tom", "Rehab days": 8, "Maintenance days": 8, total: 16 },
+  { player: "Damsler, Fredrico", "Rehab days": 7, "Maintenance days": 7, total: 14 },
+  { player: "Dean, Max", "Rehab days": 8, "Maintenance days": 8, total: 16 },
+  { player: "Foley, Ben", "Rehab days": 7, "Maintenance days": 7, total: 14 },
+  { player: "Gregory, Mark", "Rehab days": 10, "Maintenance days": 10, total: 20 },
 ];
 
 // Injury tab data
@@ -201,4 +201,53 @@ export const injuryModalityVsExerciseData = [
     "Acupuncture": 0,
     "Exercise minutes": 0,
   },
+];
+
+// Sessions tab data
+export const playersBySessionTypeData = [
+  { player: "Bargas, Jake", "Rehab sessions": 5, "Maintenance session": 3, total: 8 },
+  { player: "Barbora, Jefrin", "Rehab sessions": 6, "Maintenance session": 3, total: 9 },
+  { player: "Boone, Ben", "Rehab sessions": 5, "Maintenance session": 3, total: 8 },
+  { player: "Borges, Darian", "Rehab sessions": 10, "Maintenance session": 10, total: 20 },
+  { player: "Josh, Alex", "Rehab sessions": 12, "Maintenance session": 12, total: 24 },
+  { player: "Campbell, Tom", "Rehab sessions": 5, "Maintenance session": 3, total: 8 },
+  { player: "Dean, Max", "Rehab sessions": 5, "Maintenance session": 3, total: 8 },
+  { player: "Foley, Ben", "Rehab sessions": 7, "Maintenance session": 7, total: 14 },
+  { player: "Gregory, Mark", "Rehab sessions": 10, "Maintenance session": 10, total: 20 },
+];
+
+export const sessionsModalityVsExerciseData = [
+  { player: "Bargas, Jake", "Heat pack": 4, "Ultrasound": 0, "Cold Pack": 1, "Massage": 0, "Acupuncture": 0, "Exercise minutes": 30 },
+  { player: "Barbora, Jefrin", "Heat pack": 0, "Ultrasound": 3, "Cold Pack": 0, "Massage": 0, "Acupuncture": 0, "Exercise minutes": 10 },
+  { player: "Boone, Ben", "Heat pack": 0, "Ultrasound": 0, "Cold Pack": 1, "Massage": 0, "Acupuncture": 0, "Exercise minutes": 5 },
+  { player: "Borges, Darian", "Heat pack": 0, "Ultrasound": 0, "Cold Pack": 2, "Massage": 1, "Acupuncture": 3, "Exercise minutes": 20 },
+  { player: "Josh, Alex", "Heat pack": 4, "Ultrasound": 0, "Cold Pack": 2, "Massage": 2, "Acupuncture": 0, "Exercise minutes": 40 },
+  { player: "Campbell, Tom", "Heat pack": 0, "Ultrasound": 0, "Cold Pack": 1, "Massage": 2, "Acupuncture": 0, "Exercise minutes": 25 },
+  { player: "Dean, Max", "Heat pack": 1, "Ultrasound": 0, "Cold Pack": 0, "Massage": 0, "Acupuncture": 0, "Exercise minutes": 15 },
+  { player: "Foley, Ben", "Heat pack": 0, "Ultrasound": 2, "Cold Pack": 0, "Massage": 1, "Acupuncture": 0, "Exercise minutes": 20 },
+  { player: "Gregory, Mark", "Heat pack": 3, "Ultrasound": 0, "Cold Pack": 1, "Massage": 0, "Acupuncture": 0, "Exercise minutes": 30 },
+];
+
+export const sessionsExerciseData = [
+  { player: "Bargas, Jake", "Front squat": 4, "Push-ups": 1, "OH dumbbell press": 0, "Plank": 0, "Romanian deadlifts": 0 },
+  { player: "Barbora, Jefrin", "Front squat": 0, "Push-ups": 3, "OH dumbbell press": 0, "Plank": 0, "Romanian deadlifts": 0 },
+  { player: "Boone, Ben", "Front squat": 0, "Push-ups": 0, "OH dumbbell press": 1, "Plank": 0, "Romanian deadlifts": 0 },
+  { player: "Borges, Darian", "Front squat": 0, "Push-ups": 0, "OH dumbbell press": 1, "Plank": 2, "Romanian deadlifts": 1 },
+  { player: "Josh, Alex", "Front squat": 0, "Push-ups": 0, "OH dumbbell press": 4, "Plank": 0, "Romanian deadlifts": 2 },
+  { player: "Campbell, Tom", "Front squat": 0, "Push-ups": 0, "OH dumbbell press": 1, "Plank": 0, "Romanian deadlifts": 2 },
+  { player: "Dean, Max", "Front squat": 1, "Push-ups": 0, "OH dumbbell press": 0, "Plank": 0, "Romanian deadlifts": 0 },
+  { player: "Foley, Ben", "Front squat": 0, "Push-ups": 0, "OH dumbbell press": 0, "Plank": 2, "Romanian deadlifts": 0 },
+  { player: "Gregory, Mark", "Front squat": 4, "Push-ups": 0, "OH dumbbell press": 0, "Plank": 0, "Romanian deadlifts": 0 },
+];
+
+export const sessionsBodyPartData = [
+  { player: "Bargas, Jake", "Ankle": 4, "Knee": 1, "Shoulder": 0, "Neck": 0, "Groin": 0 },
+  { player: "Barbora, Jefrin", "Ankle": 0, "Knee": 3, "Shoulder": 0, "Neck": 0, "Groin": 0 },
+  { player: "Boone, Ben", "Ankle": 0, "Knee": 0, "Shoulder": 1, "Neck": 0, "Groin": 0 },
+  { player: "Borges, Darian", "Ankle": 0, "Knee": 0, "Shoulder": 1, "Neck": 2, "Groin": 1 },
+  { player: "Josh, Alex", "Ankle": 0, "Knee": 0, "Shoulder": 4, "Neck": 0, "Groin": 2 },
+  { player: "Campbell, Tom", "Ankle": 0, "Knee": 0, "Shoulder": 1, "Neck": 0, "Groin": 2 },
+  { player: "Dean, Max", "Ankle": 1, "Knee": 0, "Shoulder": 0, "Neck": 0, "Groin": 0 },
+  { player: "Foley, Ben", "Ankle": 0, "Knee": 0, "Shoulder": 0, "Neck": 2, "Groin": 0 },
+  { player: "Gregory, Mark", "Ankle": 4, "Knee": 0, "Shoulder": 0, "Neck": 0, "Groin": 0 },
 ];

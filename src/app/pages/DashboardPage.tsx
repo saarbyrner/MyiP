@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
-import { Box, Grid, IconButton, Tabs, Tab, Typography, Avatar, Paper } from "@/app/components/playbook";
+import { Box, Grid, IconButton, Tabs, Tab, Typography, Avatar, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@/app/components/playbook";
 import { MainNavigation } from "@/app/components/MainNavigation";
 import { AppBarHeader } from "@/app/components/AppBarHeader";
 import { Header } from "@/app/components/Header";
@@ -9,7 +9,7 @@ import { LookerFilterBar, useLookerFilters } from "@/app/components/looker/filte
 import { getFilterConfig } from "@/app/config/dashboardFilters";
 import { INJURY_RECORDS } from "@/app/data/mockInjuryData";
 import { MetricCard } from "@/app/components/looker/MetricCard";
-import { getChartColors } from "@/app/components/looker/chartConfig";
+import { getChartColors, getChartColorValues } from "@/app/components/looker/chartConfig";
 import { GaugeCard } from "@/app/components/looker/GaugeCard";
 import { BarChartCard } from "@/app/components/looker/BarChartCard";
 import { GroupedBarChartCard } from "@/app/components/looker/GroupedBarChartCard";
@@ -28,7 +28,7 @@ import { getMissedTimeByPosition } from "@/app/data/missedTimeData";
 import { NFL_TEAMS } from "@/app/data/nflTeams";
 import { POSITIONS } from "@/app/data/nflTeams";
 import { mockPlayerProfile, modalityVsExerciseData, exerciseData, bodyPartData } from "@/app/data/athleteData";
-import { totalDonutData, rehabDonutData, maintenanceDonutData, daysLostByInjuryData, daysLostByPlayerData, injuriesBySessionTypeData, injuryModalityVsExerciseData } from "@/app/data/clubRehabData";
+import { totalDonutData, rehabDonutData, maintenanceDonutData, daysLostByInjuryData, daysLostByPlayerData, injuriesBySessionTypeData, injuryModalityVsExerciseData, playersBySessionTypeData, sessionsModalityVsExerciseData, sessionsExerciseData, sessionsBodyPartData } from "@/app/data/clubRehabData";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
@@ -330,7 +330,7 @@ export function DashboardPage() {
                   }}
                 >
                   {(dashboardType === "rehab"
-                    ? ["Player", "Club", "Injury", "League"]
+                    ? ["Player", "Sessions", "Club", "Injury", "League"]
                     : ["Season", "Position", "Team"]
                   ).map((label, index) => (
                     <Tab key={label} label={label} />
@@ -526,6 +526,109 @@ export function DashboardPage() {
                   </Box>
                 ) : selectedTab === 1 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
+                    {/* Players by session type Table */}
+                    <Paper sx={{ padding: "var(--spacing-4)" }}>
+                      <Typography variant="h6" sx={{ mb: 2 }}>
+                        Players by session type
+                      </Typography>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell></TableCell>
+                              <TableCell>Player</TableCell>
+                              <TableCell>Rehab sessions</TableCell>
+                              <TableCell>Maintenance session</TableCell>
+                              <TableCell align="right">Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {playersBySessionTypeData.map((row, index) => {
+                              const maxValue = Math.max(...playersBySessionTypeData.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
+                              const rehabWidth = (row["Rehab sessions"] / maxValue) * 100;
+                              const maintenanceWidth = (row["Maintenance session"] / maxValue) * 100;
+                              
+                              return (
+                                <TableRow key={index}>
+                                  <TableCell>{index + 1}</TableCell>
+                                  <TableCell>{row.player}</TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${rehabWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Rehab sessions"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Rehab sessions"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${maintenanceWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Maintenance session"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Maintenance session"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance session"]}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
+
+                    {/* Modality vs Exercise Chart */}
+                    <ComposedBarLineChartCard
+                      title="Modality vs Exercise"
+                      data={sessionsModalityVsExerciseData}
+                      barDataKeys={["Heat pack", "Ultrasound", "Cold Pack", "Massage", "Acupuncture"]}
+                      lineDataKeys={["Exercise minutes"]}
+                      xAxisKey="player"
+                      height={350}
+                      yAxisLabel="Modality count"
+                      rightYAxisLabel="Exercise mins"
+                    />
+
+                    {/* Exercises Chart */}
+                    <StackedBarChartCard
+                      title="Exercises"
+                      data={sessionsExerciseData}
+                      dataKeys={["Front squat", "Push-ups", "OH dumbbell press", "Plank", "Romanian deadlifts"]}
+                      xAxisKey="player"
+                      height={350}
+                    />
+
+                    {/* Body Part Chart */}
+                    <StackedBarChartCard
+                      title="Body part"
+                      data={sessionsBodyPartData}
+                      dataKeys={["Ankle", "Knee", "Shoulder", "Neck", "Groin"]}
+                      xAxisKey="player"
+                      height={350}
+                    />
+                  </Box>
+                ) : selectedTab === 2 ? (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
                     {/* Three Donut Charts Row */}
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12, md: 4 }}>
@@ -557,19 +660,82 @@ export function DashboardPage() {
                       data={daysLostByInjuryData}
                       dataKey="days"
                       xAxisKey="injury"
+                      color={getChartColorValues().blueDark}
                       height={400}
                     />
 
-                    {/* Days lost x Maintenance / Rehab x Player */}
-                    <GroupedHorizontalBarChartCard
-                      title="Days lost x Maintenance / Rehab x Player"
-                      data={daysLostByPlayerData}
-                      dataKeys={["Injury category", "Maintenance days"]}
-                      yAxisKey="player"
-                      height={450}
-                    />
+                    {/* Days lost x Maintenance / Rehab x Player Table */}
+                    <Paper sx={{ padding: "var(--spacing-4)" }}>
+                      <Typography variant="h6" sx={{ mb: 2 }}>
+                        Days lost x Maintenance / Rehab x Player
+                      </Typography>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell></TableCell>
+                              <TableCell>Injury category</TableCell>
+                              <TableCell>Rehab days</TableCell>
+                              <TableCell>Maintenance days</TableCell>
+                              <TableCell align="right">Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {daysLostByPlayerData.map((row, index) => {
+                              const maxValue = Math.max(...daysLostByPlayerData.map(r => Math.max(r["Rehab days"], r["Maintenance days"])));
+                              const rehabWidth = (row["Rehab days"] / maxValue) * 100;
+                              const maintenanceWidth = (row["Maintenance days"] / maxValue) * 100;
+                              
+                              return (
+                                <TableRow key={index}>
+                                  <TableCell>{index + 1}</TableCell>
+                                  <TableCell>{row.player}</TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${rehabWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Rehab days"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Rehab days"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${maintenanceWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Maintenance days"] === maxValue ? "#E31B54" : "#FF5B8C",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Maintenance days"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell align="right">{row.total}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
                   </Box>
-                ) : selectedTab === 2 ? (
+                ) : selectedTab === 3 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
                     {/* Injuries by session type Chart */}
                     <GroupedBarChartCard
@@ -579,6 +745,77 @@ export function DashboardPage() {
                       xAxisKey="Injury category"
                       height={400}
                     />
+
+                    {/* Injuries by session type Table */}
+                    <Paper sx={{ padding: "var(--spacing-4)" }}>
+                      <Typography variant="h6" sx={{ mb: 2 }}>
+                        Injuries by session type
+                      </Typography>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell></TableCell>
+                              <TableCell>Injury category</TableCell>
+                              <TableCell>Rehab sessions</TableCell>
+                              <TableCell>Maintenance session</TableCell>
+                              <TableCell align="right">Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {injuriesBySessionTypeData.map((row, index) => {
+                              const maxValue = Math.max(...injuriesBySessionTypeData.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
+                              const rehabWidth = (row["Rehab sessions"] / maxValue) * 100;
+                              const maintenanceWidth = (row["Maintenance session"] / maxValue) * 100;
+                              
+                              return (
+                                <TableRow key={index}>
+                                  <TableCell>{index + 1}</TableCell>
+                                  <TableCell>{row["Injury category"]}</TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${rehabWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Rehab sessions"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Rehab sessions"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Box
+                                        sx={{
+                                          width: `${maintenanceWidth}%`,
+                                          minWidth: "40px",
+                                          height: "24px",
+                                          backgroundColor: row["Maintenance session"] === maxValue ? "var(--chart-blue-dark)" : "var(--chart-1)",
+                                          borderRadius: "2px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "flex-end",
+                                          paddingRight: "8px",
+                                        }}
+                                      />
+                                      <Typography variant="body2">{row["Maintenance session"]}</Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell align="right">{row["Rehab sessions"] + row["Maintenance session"]}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
 
                     {/* Modality vs Exercise Chart */}
                     <ComposedBarLineChartCard
@@ -592,7 +829,7 @@ export function DashboardPage() {
                       rightYAxisLabel="Exercise mins"
                     />
                   </Box>
-                ) : selectedTab === 3 ? (
+                ) : selectedTab === 4 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
                     {/* Three Donut Charts Row (Total / Rehab / Maintenance) */}
                     <Grid container spacing={3}>
@@ -619,12 +856,12 @@ export function DashboardPage() {
                       </Grid>
                     </Grid>
 
-                    {/* Days lost x Injuries Bar Chart */}
                     <BarChartCard
                       title="Days lost x Injuries"
                       data={daysLostByInjuryData}
                       dataKey="days"
                       xAxisKey="injury"
+                      color={getChartColorValues().blueDark}
                       height={420}
                     />
                   </Box>
