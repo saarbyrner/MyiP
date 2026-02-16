@@ -260,3 +260,203 @@ export function getBenchmarkComparison(
     benchmark: benchmarkData,
   };
 }
+
+// ==========================================
+// REHAB DASHBOARD FILTER UTILITIES
+// ==========================================
+
+import type { RehabSession } from "../data/rehabSessionData";
+import type { DynamicFilterState } from "../types/filters";
+
+/**
+ * Apply Looker-style filters to injury records for rehab dashboard
+ */
+export function applyRehabFilters(
+  records: InjuryRecord[],
+  filters: DynamicFilterState
+): InjuryRecord[] {
+  if (!filters) return records;
+
+  let filtered = [...records];
+
+  // Season filter
+  if (filters.season) {
+    const season = parseInt(filters.season as string);
+    if (!isNaN(season)) {
+      filtered = filtered.filter((r) => r.season === season);
+    }
+  }
+
+  // Player filter (by name since dropdown shows names)
+  if (filters.playerName) {
+    filtered = filtered.filter((r) => r.playerName === filters.playerName);
+  }
+
+  // Player filter by ID (fallback)
+  if (filters.playerId) {
+    filtered = filtered.filter((r) => r.playerId === filters.playerId);
+  }
+
+  // Injury type filter (case-insensitive match)
+  if (filters.injuryType) {
+    const injuryType = (filters.injuryType as string).toLowerCase();
+    filtered = filtered.filter((r) => r.injuryType.toLowerCase() === injuryType);
+  }
+
+  // Body part filter (case-insensitive match)
+  if (filters.bodyPart) {
+    const bodyPart = (filters.bodyPart as string).toLowerCase();
+    filtered = filtered.filter((r) => 
+      r.bodyPart?.toLowerCase() === bodyPart || 
+      r.injuryType.toLowerCase() === bodyPart
+    );
+  }
+
+  // Status filter - map "active" to Out/Limited, "recovered" to Recovered
+  if (filters.status) {
+    const status = filters.status as string;
+    if (status === "active") {
+      filtered = filtered.filter((r) => r.status === "Out" || r.status === "Limited");
+    } else if (status === "recovered") {
+      filtered = filtered.filter((r) => r.status === "Recovered");
+    } else {
+      // Direct match for other values
+      filtered = filtered.filter((r) => r.status.toLowerCase() === status.toLowerCase());
+    }
+  }
+
+  // Date range filter (preset periods)
+  if (filters.dateRange) {
+    const today = new Date();
+    let startDate: Date | null = null;
+
+    switch (filters.dateRange) {
+      case "last7":
+        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "last30":
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "last90":
+        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case "thisYear":
+        startDate = new Date(today.getFullYear(), 0, 1);
+        break;
+    }
+
+    if (startDate) {
+      filtered = filtered.filter((r) => r.injuryDate >= startDate!);
+    }
+  }
+
+  // Week filter
+  if (filters.week) {
+    const week = parseInt(filters.week as string);
+    if (!isNaN(week)) {
+      filtered = filtered.filter((r) => r.week === week);
+    }
+  }
+
+  // Season type filter
+  if (filters.seasonType) {
+    const seasonType = (filters.seasonType as string).toLowerCase();
+    filtered = filtered.filter((r) => r.seasonType?.toLowerCase() === seasonType);
+  }
+
+  // Mechanism of injury filter
+  if (filters.mechanismOfInjury) {
+    filtered = filtered.filter((r) => r.mechanismOfInjury === filters.mechanismOfInjury);
+  }
+
+  return filtered;
+}
+
+/**
+ * Apply Looker-style filters to rehab sessions
+ */
+export function filterRehabSessions(
+  sessions: RehabSession[],
+  filters: DynamicFilterState
+): RehabSession[] {
+  if (!filters) return sessions;
+
+  let filtered = [...sessions];
+
+  // Season filter
+  if (filters.season) {
+    const season = parseInt(filters.season as string);
+    if (!isNaN(season)) {
+      filtered = filtered.filter((s) => s.season === season);
+    }
+  }
+
+  // Player filter (by name since dropdown shows names)
+  if (filters.playerName) {
+    filtered = filtered.filter((s) => s.playerName === filters.playerName);
+  }
+
+  // Player filter by ID (fallback)
+  if (filters.playerId) {
+    filtered = filtered.filter((s) => s.playerId === filters.playerId);
+  }
+
+  // Injury type filter
+  if (filters.injuryType) {
+    const injuryType = (filters.injuryType as string).toLowerCase();
+    filtered = filtered.filter((s) => s.injuryType.toLowerCase() === injuryType);
+  }
+
+  // Body part filter
+  if (filters.bodyPart) {
+    const bodyPart = (filters.bodyPart as string).toLowerCase();
+    filtered = filtered.filter((s) => 
+      s.bodyPart.toLowerCase() === bodyPart ||
+      s.bodyPartsWorked.some((bp) => bp.toLowerCase() === bodyPart)
+    );
+  }
+
+  // Status filter
+  if (filters.status) {
+    const status = filters.status as string;
+    if (status === "active") {
+      filtered = filtered.filter((s) => s.status === "Out" || s.status === "Limited");
+    } else if (status === "recovered") {
+      filtered = filtered.filter((s) => s.status === "Recovered");
+    }
+  }
+
+  // Session type filter (rehab/maintenance)
+  if (filters.sessionTypes && Array.isArray(filters.sessionTypes) && filters.sessionTypes.length > 0) {
+    filtered = filtered.filter((s) => 
+      (filters.sessionTypes as string[]).includes(s.sessionType)
+    );
+  }
+
+  // Date range filter
+  if (filters.dateRange) {
+    const today = new Date();
+    let startDate: Date | null = null;
+
+    switch (filters.dateRange) {
+      case "last7":
+        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "last30":
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "last90":
+        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case "thisYear":
+        startDate = new Date(today.getFullYear(), 0, 1);
+        break;
+    }
+
+    if (startDate) {
+      filtered = filtered.filter((s) => s.date >= startDate!);
+    }
+  }
+
+  return filtered;
+}

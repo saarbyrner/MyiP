@@ -6,7 +6,7 @@ import { AppBarHeader } from "@/app/components/AppBarHeader";
 import { Header } from "@/app/components/Header";
 import { DashboardFilters, FilterState } from "@/app/components/DashboardFilters";
 import { LookerFilterBar, useLookerFilters } from "@/app/components/looker/filters";
-import { getFilterConfig } from "@/app/config/dashboardFilters";
+import { getFilterConfig, getRehabFiltersForTab } from "@/app/config/dashboardFilters";
 import { INJURY_RECORDS } from "@/app/data/mockInjuryData";
 import { MetricCard } from "@/app/components/looker/MetricCard";
 import { getChartColors, getChartColorValues } from "@/app/components/looker/chartConfig";
@@ -21,14 +21,27 @@ import { SeasonTrendChart } from "@/app/components/looker/SeasonTrendChart";
 import { ComposedBarLineChartCard } from "@/app/components/looker/ComposedBarLineChartCard";
 import { StackedBarChartCard } from "@/app/components/looker/StackedBarChartCard";
 import { DashboardDrawer } from "@/app/components/DashboardDrawer";
-import { getFilteredData, getBenchmarkComparison, getInjuryTypeData } from "@/app/utils/dataFilters";
+import { getFilteredData, getBenchmarkComparison, getInjuryTypeData, applyRehabFilters, filterRehabSessions } from "@/app/utils/dataFilters";
 import { InjuryType } from "@/app/data/mockInjuryData";
 import { getBenchmarkData, getTeamStandingPosition, getNFLAvgForSeason, getTeamMissedTimeStats, getNFL1YearAvg, getTeam3YearAvg } from "@/app/data/missedTimeData";
 import { getMissedTimeByPosition } from "@/app/data/missedTimeData";
 import { NFL_TEAMS } from "@/app/data/nflTeams";
 import { POSITIONS } from "@/app/data/nflTeams";
-import { mockPlayerProfile, modalityVsExerciseData, exerciseData, bodyPartData } from "@/app/data/athleteData";
-import { totalDonutData, rehabDonutData, maintenanceDonutData, daysLostByInjuryData, daysLostByPlayerData, injuriesBySessionTypeData, injuryModalityVsExerciseData, playersBySessionTypeData, sessionsModalityVsExerciseData, sessionsExerciseData, sessionsBodyPartData } from "@/app/data/clubRehabData";
+import { mockPlayerProfile } from "@/app/data/athleteData";
+// Import rehab session data and aggregation functions
+import {
+  REHAB_SESSIONS,
+  aggregateDonutData,
+  aggregateDaysLostByInjury,
+  aggregateDaysLostByPlayer,
+  aggregateModalityVsExercise,
+  aggregateExercises,
+  aggregateBodyParts,
+  aggregatePlayersBySessionType,
+  aggregateInjuriesBySessionType,
+  getUniquePlayers,
+  getPlayerProfile,
+} from "@/app/data/rehabSessionData";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
@@ -66,7 +79,7 @@ export function DashboardPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const [filterState, setFilterState] = useState<FilterState>({
-    season: "2026",
+    season: "2025",
     benchmarkValue: "",
     startDate: null,
     endDate: null,
@@ -74,11 +87,181 @@ export function DashboardPage() {
     sessionTypes: [],
     injuryStatus: "",
     teamId: "18", // Default to New York Giants - Changed to string
-  }); // Default to 2026 season
+  }); // Default to 2025 season
 
-  // Looker-style filters - get config for current dashboard
-  const lookerFilterConfig = useMemo(() => getFilterConfig(dashboardType || "missed-time"), [dashboardType]);
-  const { values: lookerFilterValues, handleChange: handleLookerFilterChange, handleReset: handleLookerReset } = useLookerFilters(lookerFilterConfig);
+  // Looker-style filters - get config for current dashboard (tab-aware for rehab)
+  const lookerFilterConfig = useMemo(() => {
+    if (dashboardType === "rehab") {
+      return getRehabFiltersForTab(selectedTab);
+    }
+    return getFilterConfig(dashboardType || "missed-time");
+  }, [dashboardType, selectedTab]);
+  
+  const { values: lookerFilterValues, handleChange: handleLookerFilterChange, handleReset: handleLookerReset, setValues: setLookerFilterValues } = useLookerFilters(lookerFilterConfig);
+
+  // Filtered data for Rehab dashboard
+  const filteredInjuryRecords = useMemo(() => {
+    if (dashboardType !== "rehab") return INJURY_RECORDS;
+    return applyRehabFilters(INJURY_RECORDS, lookerFilterValues);
+  }, [dashboardType, lookerFilterValues]);
+
+  const filteredRehabSessions = useMemo(() => {
+    if (dashboardType !== "rehab") return REHAB_SESSIONS;
+    return filterRehabSessions(REHAB_SESSIONS, lookerFilterValues);
+  }, [dashboardType, lookerFilterValues]);
+
+  // Aggregated chart data for Rehab dashboard
+  const rehabChartData = useMemo(() => {
+    if (dashboardType !== "rehab") return null;
+    
+    // Get body parts for dynamic chart keys
+    const bodyPartsSet = new Set<string>();
+    filteredRehabSessions.forEach((s) => s.bodyPartsWorked.forEach((bp) => bodyPartsSet.add(bp)));
+    const bodyPartKeys = Array.from(bodyPartsSet).slice(0, 5); // Top 5 body parts
+
+    return {
+      // Donut charts
+      totalDonut: aggregateDonutData(filteredRehabSessions, "total"),
+      rehabDonut: aggregateDonutData(filteredRehabSessions, "rehab"),
+      maintenanceDonut: aggregateDonutData(filteredRehabSessions, "maintenance"),
+      
+      // Bar charts
+      daysLostByInjury: aggregateDaysLostByInjury(filteredInjuryRecords),
+      daysLostByPlayer: aggregateDaysLostByPlayer(filteredInjuryRecords, filteredRehabSessions),
+      
+      // Stacked/Composed charts - by date (for Player tab)
+      modalityByDate: aggregateModalityVsExercise(filteredRehabSessions, "date"),
+      exercisesByDate: aggregateExercises(filteredRehabSessions, "date"),
+      bodyPartsByDate: aggregateBodyParts(filteredRehabSessions, "date"),
+      
+      // Stacked/Composed charts - by player (for Sessions tab)
+      modalityByPlayer: aggregateModalityVsExercise(filteredRehabSessions, "player"),
+      exercisesByPlayer: aggregateExercises(filteredRehabSessions, "player"),
+      bodyPartsByPlayer: aggregateBodyParts(filteredRehabSessions, "player"),
+      
+      // Session type aggregations
+      playersBySessionType: aggregatePlayersBySessionType(filteredRehabSessions),
+      injuriesBySessionType: aggregateInjuriesBySessionType(filteredRehabSessions),
+      
+      // Available players for selection
+      availablePlayers: getUniquePlayers(filteredRehabSessions),
+      
+      // Dynamic body part keys for charts
+      bodyPartKeys,
+    };
+  }, [dashboardType, filteredInjuryRecords, filteredRehabSessions]);
+
+  // Selected player profile for Player tab
+  const selectedPlayerProfile = useMemo(() => {
+    if (dashboardType !== "rehab" || selectedTab !== 0) return null;
+    
+    const playerName = lookerFilterValues.playerName as string;
+    if (playerName) {
+      // Find player by name directly from all sessions (not filtered by season)
+      // This ensures we find the player even if they don't have data in the selected season
+      const playerSession = REHAB_SESSIONS.find((s) => s.playerName === playerName);
+      if (playerSession) {
+        return getPlayerProfile(REHAB_SESSIONS, playerSession.playerId);
+      }
+    }
+    
+    // If no player selected, try to get first available player from filtered sessions
+    const players = getUniquePlayers(filteredRehabSessions);
+    if (players.length > 0) {
+      return getPlayerProfile(filteredRehabSessions, players[0].id);
+    }
+    
+    return null;
+  }, [dashboardType, selectedTab, lookerFilterValues.playerName, filteredRehabSessions]);
+
+  // Player-specific sessions for Player tab charts
+  const playerSessionData = useMemo(() => {
+    if (dashboardType !== "rehab" || selectedTab !== 0) return null;
+    
+    const playerName = lookerFilterValues.playerName as string;
+    
+    // If a player is selected, get their sessions directly (applying other filters but not re-filtering by name)
+    if (playerName) {
+      // Start from all sessions for this player
+      let playerSessions = REHAB_SESSIONS.filter((s) => s.playerName === playerName);
+      
+      // Apply season filter if set
+      if (lookerFilterValues.season) {
+        const season = parseInt(lookerFilterValues.season as string);
+        if (!isNaN(season)) {
+          const seasonFiltered = playerSessions.filter((s) => s.season === season);
+          // Only apply season filter if it doesn't empty the results
+          if (seasonFiltered.length > 0) {
+            playerSessions = seasonFiltered;
+          }
+        }
+      }
+      
+      // Apply other optional filters (dateRange, etc.) if they exist
+      if (lookerFilterValues.dateRange) {
+        const today = new Date();
+        let startDate: Date | null = null;
+        switch (lookerFilterValues.dateRange) {
+          case "last7":
+            startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case "last30":
+            startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case "last90":
+            startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+            break;
+          case "thisYear":
+            startDate = new Date(today.getFullYear(), 0, 1);
+            break;
+        }
+        if (startDate) {
+          playerSessions = playerSessions.filter((s) => s.date >= startDate!);
+        }
+      }
+      
+      if (playerSessions.length === 0) {
+        return null;
+      }
+      
+      // Get body parts for this player
+      const bodyPartsSet = new Set<string>();
+      playerSessions.forEach((s) => s.bodyPartsWorked.forEach((bp) => bodyPartsSet.add(bp)));
+      const bodyPartKeys = Array.from(bodyPartsSet).slice(0, 5);
+      
+      return {
+        modalityByDate: aggregateModalityVsExercise(playerSessions, "date"),
+        exercisesByDate: aggregateExercises(playerSessions, "date"),
+        bodyPartsByDate: aggregateBodyParts(playerSessions, "date"),
+        bodyPartKeys,
+        rehabCount: playerSessions.filter((s) => s.sessionType === "rehab").length,
+        maintenanceCount: playerSessions.filter((s) => s.sessionType === "maintenance").length,
+      };
+    }
+    
+    // No player selected - use first available from filtered sessions
+    if (!selectedPlayerProfile) return null;
+    
+    const playerSessions = filteredRehabSessions.filter(
+      (s) => s.playerId === selectedPlayerProfile.playerId
+    );
+    
+    if (playerSessions.length === 0) return null;
+    
+    // Get body parts for this player
+    const bodyPartsSet = new Set<string>();
+    playerSessions.forEach((s) => s.bodyPartsWorked.forEach((bp) => bodyPartsSet.add(bp)));
+    const bodyPartKeys = Array.from(bodyPartsSet).slice(0, 5);
+    
+    return {
+      modalityByDate: aggregateModalityVsExercise(playerSessions, "date"),
+      exercisesByDate: aggregateExercises(playerSessions, "date"),
+      bodyPartsByDate: aggregateBodyParts(playerSessions, "date"),
+      bodyPartKeys,
+      rehabCount: playerSessions.filter((s) => s.sessionType === "rehab").length,
+      maintenanceCount: playerSessions.filter((s) => s.sessionType === "maintenance").length,
+    };
+  }, [dashboardType, selectedTab, lookerFilterValues.playerName, lookerFilterValues.season, lookerFilterValues.dateRange, selectedPlayerProfile, filteredRehabSessions]);
 
   const dashboardTitle = dashboardType 
     ? dashboardTitles[dashboardType] || "Dashboard"
@@ -412,7 +595,7 @@ export function DashboardPage() {
               {/* Looker-style Filter Bar */}
               <LookerFilterBar
                 config={lookerFilterConfig}
-                data={INJURY_RECORDS as Record<string, unknown>[]}
+                data={dashboardType === "rehab" ? REHAB_SESSIONS as Record<string, unknown>[] : INJURY_RECORDS as Record<string, unknown>[]}
                 values={lookerFilterValues}
                 onChange={handleLookerFilterChange}
                 onReset={handleLookerReset}
@@ -421,7 +604,7 @@ export function DashboardPage() {
               />
               
               {/* Conditionally render Rehab Dashboard, Missed Time Dashboard or Default Dashboard */}
-              {dashboardType === "rehab" ? (
+              {dashboardType === "rehab" && rehabChartData ? (
                 selectedTab === 0 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
                     {/* Player Profile Section with Metric Cards */}
@@ -440,13 +623,15 @@ export function DashboardPage() {
                           }}
                         >
                           <Avatar
-                            src={mockPlayerProfile.imageUrl}
+                            src={selectedPlayerProfile?.playerId ? "" : mockPlayerProfile.imageUrl}
                             sx={{
                               width: 64,
                               height: 64,
                               flexShrink: 0,
                             }}
-                          />
+                          >
+                            {selectedPlayerProfile?.name?.charAt(0) || "?"}
+                          </Avatar>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography
                               variant="h6"
@@ -460,7 +645,7 @@ export function DashboardPage() {
                                 textOverflow: "ellipsis",
                               }}
                             >
-                              {mockPlayerProfile.name}
+                              {selectedPlayerProfile?.name || "Select a player"}
                             </Typography>
                             <Typography
                               variant="body2"
@@ -472,57 +657,63 @@ export function DashboardPage() {
                                 textOverflow: "ellipsis",
                               }}
                             >
-                              {mockPlayerProfile.position}
+                              {selectedPlayerProfile?.currentInjury ? `${selectedPlayerProfile.currentInjury} - ${selectedPlayerProfile.bodyPart}` : "No injury selected"}
                             </Typography>
                           </Box>
                         </Paper>
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 3, lg: 2 }}>
                         <MetricCard
-                          value={mockPlayerProfile.rehabSessions}
+                          value={playerSessionData?.rehabCount ?? selectedPlayerProfile?.rehabSessions ?? 0}
                           label="Rehab sessions"
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 3, lg: 2 }}>
                         <MetricCard
-                          value={mockPlayerProfile.maintenanceSessions}
+                          value={playerSessionData?.maintenanceCount ?? selectedPlayerProfile?.maintenanceSessions ?? 0}
                           label="Maintenance sessions"
                         />
                       </Grid>
                     </Grid>
 
                     {/* Charts Section */}
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-                      {/* Modality vs Exercise Chart */}
-                      <ComposedBarLineChartCard
-                        title="Modality vs Exercise"
-                        data={modalityVsExerciseData}
-                        barDataKeys={["Heat pack", "Ultrasound", "Cold Pack", "Massage", "Acupuncture"]}
-                        lineDataKeys={["Exercise minutes"]}
-                        xAxisKey="date"
-                        height={350}
-                        yAxisLabel="Load score"
-                        rightYAxisLabel="Exercise mins"
-                      />
+                    {playerSessionData && playerSessionData.modalityByDate.length > 0 ? (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
+                        {/* Modality vs Exercise Chart */}
+                        <ComposedBarLineChartCard
+                          title="Modality vs Exercise"
+                          data={playerSessionData.modalityByDate}
+                          barDataKeys={["Heat pack", "Ultrasound", "Cold Pack", "Massage", "Acupuncture"]}
+                          lineDataKeys={["Exercise minutes"]}
+                          xAxisKey="date"
+                          height={350}
+                          yAxisLabel="Load score"
+                          rightYAxisLabel="Exercise mins"
+                        />
 
-                      {/* Exercises Chart */}
-                      <StackedBarChartCard
-                        title="Exercises"
-                        data={exerciseData}
-                        dataKeys={["Front squat", "Push-ups", "OH dumbbell press", "Plank", "Romanian deadlifts"]}
-                        xAxisKey="date"
-                        height={350}
-                      />
+                        {/* Exercises Chart */}
+                        <StackedBarChartCard
+                          title="Exercises"
+                          data={playerSessionData.exercisesByDate}
+                          dataKeys={["Front squat", "Push-ups", "OH dumbbell press", "Plank", "Romanian deadlifts"]}
+                          xAxisKey="date"
+                          height={350}
+                        />
 
-                      {/* Body Part Chart */}
-                      <StackedBarChartCard
-                        title="Body part"
-                        data={bodyPartData}
-                        dataKeys={["Ankle", "Knee", "Shoulder", "Neck", "Groin"]}
-                        xAxisKey="date"
-                        height={350}
-                      />
-                    </Box>
+                        {/* Body Part Chart */}
+                        <StackedBarChartCard
+                          title="Body part"
+                          data={playerSessionData.bodyPartsByDate}
+                          dataKeys={playerSessionData.bodyPartKeys.length > 0 ? playerSessionData.bodyPartKeys : ["Ankle", "Knee", "Shoulder", "Neck", "Groin"]}
+                          xAxisKey="date"
+                          height={350}
+                        />
+                      </Box>
+                    ) : (
+                      <Box sx={{ p: 4, textAlign: "center", color: "var(--text-secondary)" }}>
+                        <Typography>Select a player from the filters above to view their rehab data.</Typography>
+                      </Box>
+                    )}
                   </Box>
                 ) : selectedTab === 1 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
@@ -543,10 +734,10 @@ export function DashboardPage() {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {playersBySessionTypeData.map((row, index) => {
-                              const maxValue = Math.max(...playersBySessionTypeData.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
-                              const rehabWidth = (row["Rehab sessions"] / maxValue) * 100;
-                              const maintenanceWidth = (row["Maintenance session"] / maxValue) * 100;
+                            {rehabChartData.playersBySessionType.map((row, index) => {
+                              const maxValue = Math.max(...rehabChartData.playersBySessionType.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
+                              const rehabWidth = maxValue > 0 ? (row["Rehab sessions"] / maxValue) * 100 : 0;
+                              const maintenanceWidth = maxValue > 0 ? (row["Maintenance session"] / maxValue) * 100 : 0;
                               
                               return (
                                 <TableRow key={index}>
@@ -600,7 +791,7 @@ export function DashboardPage() {
                     {/* Modality vs Exercise Chart */}
                     <ComposedBarLineChartCard
                       title="Modality vs Exercise"
-                      data={sessionsModalityVsExerciseData}
+                      data={rehabChartData.modalityByPlayer}
                       barDataKeys={["Heat pack", "Ultrasound", "Cold Pack", "Massage", "Acupuncture"]}
                       lineDataKeys={["Exercise minutes"]}
                       xAxisKey="player"
@@ -612,7 +803,7 @@ export function DashboardPage() {
                     {/* Exercises Chart */}
                     <StackedBarChartCard
                       title="Exercises"
-                      data={sessionsExerciseData}
+                      data={rehabChartData.exercisesByPlayer}
                       dataKeys={["Front squat", "Push-ups", "OH dumbbell press", "Plank", "Romanian deadlifts"]}
                       xAxisKey="player"
                       height={350}
@@ -621,8 +812,8 @@ export function DashboardPage() {
                     {/* Body Part Chart */}
                     <StackedBarChartCard
                       title="Body part"
-                      data={sessionsBodyPartData}
-                      dataKeys={["Ankle", "Knee", "Shoulder", "Neck", "Groin"]}
+                      data={rehabChartData.bodyPartsByPlayer}
+                      dataKeys={rehabChartData.bodyPartKeys.length > 0 ? rehabChartData.bodyPartKeys : ["Ankle", "Knee", "Shoulder", "Neck", "Groin"]}
                       xAxisKey="player"
                       height={350}
                     />
@@ -634,21 +825,21 @@ export function DashboardPage() {
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Total"
-                          data={totalDonutData}
+                          data={rehabChartData.totalDonut}
                           height={300}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Rehab"
-                          data={rehabDonutData}
+                          data={rehabChartData.rehabDonut}
                           height={300}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Maintenance"
-                          data={maintenanceDonutData}
+                          data={rehabChartData.maintenanceDonut}
                           height={300}
                         />
                       </Grid>
@@ -657,7 +848,7 @@ export function DashboardPage() {
                     {/* Days lost x Injuries Bar Chart */}
                     <BarChartCard
                       title="Days lost x Injuries"
-                      data={daysLostByInjuryData}
+                      data={rehabChartData.daysLostByInjury}
                       dataKey="days"
                       xAxisKey="injury"
                       color={getChartColorValues().blueDark}
@@ -674,17 +865,17 @@ export function DashboardPage() {
                           <TableHead>
                             <TableRow>
                               <TableCell></TableCell>
-                              <TableCell>Injury category</TableCell>
+                              <TableCell>Player</TableCell>
                               <TableCell>Rehab days</TableCell>
                               <TableCell>Maintenance days</TableCell>
                               <TableCell align="right">Total</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {daysLostByPlayerData.map((row, index) => {
-                              const maxValue = Math.max(...daysLostByPlayerData.map(r => Math.max(r["Rehab days"], r["Maintenance days"])));
-                              const rehabWidth = (row["Rehab days"] / maxValue) * 100;
-                              const maintenanceWidth = (row["Maintenance days"] / maxValue) * 100;
+                            {rehabChartData.daysLostByPlayer.map((row, index) => {
+                              const maxValue = Math.max(...rehabChartData.daysLostByPlayer.map(r => Math.max(r["Rehab days"], r["Maintenance days"])));
+                              const rehabWidth = maxValue > 0 ? (row["Rehab days"] / maxValue) * 100 : 0;
+                              const maintenanceWidth = maxValue > 0 ? (row["Maintenance days"] / maxValue) * 100 : 0;
                               
                               return (
                                 <TableRow key={index}>
@@ -740,7 +931,7 @@ export function DashboardPage() {
                     {/* Injuries by session type Chart */}
                     <GroupedBarChartCard
                       title="Injuries by session type"
-                      data={injuriesBySessionTypeData}
+                      data={rehabChartData.injuriesBySessionType}
                       dataKeys={["Rehab sessions", "Maintenance session"]}
                       xAxisKey="Injury category"
                       height={400}
@@ -763,10 +954,10 @@ export function DashboardPage() {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {injuriesBySessionTypeData.map((row, index) => {
-                              const maxValue = Math.max(...injuriesBySessionTypeData.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
-                              const rehabWidth = (row["Rehab sessions"] / maxValue) * 100;
-                              const maintenanceWidth = (row["Maintenance session"] / maxValue) * 100;
+                            {rehabChartData.injuriesBySessionType.map((row, index) => {
+                              const maxValue = Math.max(...rehabChartData.injuriesBySessionType.map(r => Math.max(r["Rehab sessions"], r["Maintenance session"])));
+                              const rehabWidth = maxValue > 0 ? (row["Rehab sessions"] / maxValue) * 100 : 0;
+                              const maintenanceWidth = maxValue > 0 ? (row["Maintenance session"] / maxValue) * 100 : 0;
                               
                               return (
                                 <TableRow key={index}>
@@ -820,7 +1011,7 @@ export function DashboardPage() {
                     {/* Modality vs Exercise Chart */}
                     <ComposedBarLineChartCard
                       title="Modality vs Exercise"
-                      data={injuryModalityVsExerciseData}
+                      data={rehabChartData.modalityByDate}
                       barDataKeys={["Heat pack", "Ultrasound", "Cold Pack", "Massage", "Acupuncture"]}
                       lineDataKeys={["Exercise minutes"]}
                       xAxisKey="date"
@@ -836,21 +1027,21 @@ export function DashboardPage() {
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Total"
-                          data={totalDonutData}
+                          data={rehabChartData.totalDonut}
                           height={300}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Rehab"
-                          data={rehabDonutData}
+                          data={rehabChartData.rehabDonut}
                           height={300}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, md: 4 }}>
                         <DonutChartCard
                           title="Maintenance"
-                          data={maintenanceDonutData}
+                          data={rehabChartData.maintenanceDonut}
                           height={300}
                         />
                       </Grid>
@@ -858,7 +1049,7 @@ export function DashboardPage() {
 
                     <BarChartCard
                       title="Days lost x Injuries"
-                      data={daysLostByInjuryData}
+                      data={rehabChartData.daysLostByInjury}
                       dataKey="days"
                       xAxisKey="injury"
                       color={getChartColorValues().blueDark}

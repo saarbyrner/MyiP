@@ -122,7 +122,7 @@ export const missedTimeFilters: FilterConfig[] = [
     type: "select",
     dataKey: "season",
     options: SEASON_OPTIONS,
-    defaultValue: "2026",
+    defaultValue: "2025",
     row: 1,
   },
   {
@@ -271,6 +271,26 @@ export const missedTimeFilters: FilterConfig[] = [
 // REHAB DASHBOARD FILTERS
 // ==========================================
 
+// Rehab status options - maps to InjuryStatus in data
+const REHAB_STATUS_OPTIONS = [
+  { value: "active", label: "Active (Out/Limited)" },
+  { value: "recovered", label: "Recovered" },
+];
+
+// Rehab session type options
+const REHAB_SESSION_TYPE_OPTIONS = [
+  { value: "rehab", label: "Rehab" },
+  { value: "maintenance", label: "Maintenance" },
+];
+
+// Date range preset options
+const DATE_RANGE_OPTIONS = [
+  { value: "last7", label: "Last 7 days" },
+  { value: "last30", label: "Last 30 days" },
+  { value: "last90", label: "Last 90 days" },
+  { value: "thisYear", label: "This year" },
+];
+
 export const rehabFilters: FilterConfig[] = [
   // Row 1
   {
@@ -279,14 +299,14 @@ export const rehabFilters: FilterConfig[] = [
     type: "select",
     dataKey: "season",
     options: SEASON_OPTIONS,
-    defaultValue: "2026",
+    defaultValue: "2025",
     row: 1,
   },
   {
     id: "player",
     label: "Player",
     type: "select",
-    dataKey: "playerId",
+    dataKey: "playerName",
     optionsFromData: "playerName",
     row: 1,
     width: "180px",
@@ -312,11 +332,7 @@ export const rehabFilters: FilterConfig[] = [
     label: "Status",
     type: "select",
     dataKey: "status",
-    options: [
-      { value: "active", label: "Active" },
-      { value: "recovered", label: "Recovered" },
-      { value: "chronic", label: "Chronic" },
-    ],
+    options: REHAB_STATUS_OPTIONS,
     row: 1,
   },
 
@@ -326,12 +342,7 @@ export const rehabFilters: FilterConfig[] = [
     label: "Date range",
     type: "select",
     dataKey: "dateRange",
-    options: [
-      { value: "last7", label: "Last 7 days" },
-      { value: "last30", label: "Last 30 days" },
-      { value: "last90", label: "Last 90 days" },
-      { value: "thisYear", label: "This year" },
-    ],
+    options: DATE_RANGE_OPTIONS,
     row: 2,
   },
   {
@@ -339,15 +350,246 @@ export const rehabFilters: FilterConfig[] = [
     label: "Session type",
     type: "multi-select",
     dataKey: "sessionTypes",
-    options: [
-      { value: "rehab", label: "Rehab" },
-      { value: "maintenance", label: "Maintenance" },
-      { value: "treatment", label: "Treatment" },
-      { value: "modality", label: "Modality" },
-    ],
+    options: REHAB_SESSION_TYPE_OPTIONS,
     row: 2,
   },
 ];
+
+// ==========================================
+// TAB-SPECIFIC REHAB FILTERS
+// ==========================================
+
+// Player tab - needs player selector, injury context
+export const rehabPlayerTabFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "player",
+    label: "Player",
+    type: "select",
+    dataKey: "playerName",
+    optionsFromData: "playerName",
+    row: 1,
+    width: "200px",
+  },
+  {
+    id: "injuryType",
+    label: "Injury type",
+    type: "select",
+    dataKey: "injuryType",
+    options: INJURY_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "bodyPart",
+    label: "Body part",
+    type: "select",
+    dataKey: "bodyPart",
+    options: BODY_PART_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "select",
+    dataKey: "dateRange",
+    options: DATE_RANGE_OPTIONS,
+    row: 1,
+  },
+];
+
+// Sessions tab - session type focused
+export const rehabSessionsTabFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "player",
+    label: "Player",
+    type: "select",
+    dataKey: "playerName",
+    optionsFromData: "playerName",
+    row: 1,
+    width: "200px",
+  },
+  {
+    id: "sessionType",
+    label: "Session type",
+    type: "multi-select",
+    dataKey: "sessionTypes",
+    options: REHAB_SESSION_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "select",
+    dataKey: "dateRange",
+    options: DATE_RANGE_OPTIONS,
+    row: 1,
+  },
+];
+
+// Club tab - aggregate view, status/injury focused
+export const rehabClubTabFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "injuryType",
+    label: "Injury type",
+    type: "select",
+    dataKey: "injuryType",
+    options: INJURY_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "bodyPart",
+    label: "Body part",
+    type: "select",
+    dataKey: "bodyPart",
+    options: BODY_PART_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "status",
+    label: "Status",
+    type: "select",
+    dataKey: "status",
+    options: REHAB_STATUS_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "select",
+    dataKey: "dateRange",
+    options: DATE_RANGE_OPTIONS,
+    row: 1,
+  },
+];
+
+// Injury tab - injury analysis focused
+export const rehabInjuryTabFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "injuryType",
+    label: "Injury type",
+    type: "select",
+    dataKey: "injuryType",
+    options: INJURY_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "bodyPart",
+    label: "Body part",
+    type: "select",
+    dataKey: "bodyPart",
+    options: BODY_PART_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "mechanismOfInjury",
+    label: "Mechanism",
+    type: "select",
+    dataKey: "mechanismOfInjury",
+    options: MECHANISM_OF_INJURY_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "sessionType",
+    label: "Session type",
+    type: "multi-select",
+    dataKey: "sessionTypes",
+    options: REHAB_SESSION_TYPE_OPTIONS,
+    row: 1,
+  },
+];
+
+// League tab - broader view with season context
+export const rehabLeagueTabFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "seasonType",
+    label: "Season type",
+    type: "select",
+    dataKey: "seasonType",
+    options: SEASON_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "week",
+    label: "Week",
+    type: "select",
+    dataKey: "week",
+    optionsFromData: "week",
+    row: 1,
+  },
+  {
+    id: "injuryType",
+    label: "Injury type",
+    type: "select",
+    dataKey: "injuryType",
+    options: INJURY_TYPE_OPTIONS,
+    row: 1,
+  },
+];
+
+/**
+ * Get filter configuration for a specific rehab dashboard tab
+ * @param tabIndex - 0: Player, 1: Sessions, 2: Club, 3: Injury, 4: League
+ */
+export function getRehabFiltersForTab(tabIndex: number): FilterConfig[] {
+  switch (tabIndex) {
+    case 0:
+      return rehabPlayerTabFilters;
+    case 1:
+      return rehabSessionsTabFilters;
+    case 2:
+      return rehabClubTabFilters;
+    case 3:
+      return rehabInjuryTabFilters;
+    case 4:
+      return rehabLeagueTabFilters;
+    default:
+      return rehabFilters;
+  }
+};
 
 // ==========================================
 // GENERIC INJURY DASHBOARD FILTERS
@@ -360,7 +602,7 @@ export const injuryDashboardFilters: FilterConfig[] = [
     type: "select",
     dataKey: "season",
     options: SEASON_OPTIONS,
-    defaultValue: "2026",
+    defaultValue: "2025",
     row: 1,
   },
   {
