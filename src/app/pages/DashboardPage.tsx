@@ -108,6 +108,53 @@ export function DashboardPage() {
   const [rehabTableRowsPerPage, setRehabTableRowsPerPage] = useState(10);
   const [maintenanceTablePage, setMaintenanceTablePage] = useState(0);
   const [maintenanceTableRowsPerPage, setMaintenanceTableRowsPerPage] = useState(10);
+  // Pagination state for PHS Injury Report tables
+  const [phsPlayerDetailsPage, setPhsPlayerDetailsPage] = useState(0);
+  const [phsPlayerDetailsRowsPerPage, setPhsPlayerDetailsRowsPerPage] = useState(10);
+  const [phsPlayerSummaryInjuriesPage, setPhsPlayerSummaryInjuriesPage] = useState(0);
+  const [phsPlayerSummaryInjuriesRowsPerPage, setPhsPlayerSummaryInjuriesRowsPerPage] = useState(10);
+  const [phsPlayerInjuriesPage, setPhsPlayerInjuriesPage] = useState(0);
+  const [phsPlayerInjuriesRowsPerPage, setPhsPlayerInjuriesRowsPerPage] = useState(10);
+  const [phsActivityLogPage, setPhsActivityLogPage] = useState(0);
+  const [phsActivityLogRowsPerPage, setPhsActivityLogRowsPerPage] = useState(10);
+  // Sorting state for PHS tables
+  const [phsPlayerDetailsSort, setPhsPlayerDetailsSort] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "playerName", direction: "asc" });
+  const [phsPlayerInjuriesSort, setPhsPlayerInjuriesSort] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "playerName", direction: "asc" });
+  const [phsActivityLogSort, setPhsActivityLogSort] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "activityDate", direction: "desc" });
+  const [phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "injuryDate", direction: "desc" });
+  const [phsPlayerSummaryActivityLogSort, setPhsPlayerSummaryActivityLogSort] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "activityDate", direction: "desc" });
+
+  // Generic compare helper for sorting
+  const compareValues = (a: any, b: any, key: string, direction: "asc" | "desc") => {
+    let va = a?.[key];
+    let vb = b?.[key];
+
+    // Handle dates
+    if (key.toLowerCase().includes("date") || (va instanceof Date) || (vb instanceof Date)) {
+      const da = va ? new Date(va).getTime() : 0;
+      const db = vb ? new Date(vb).getTime() : 0;
+      if (da === db) return 0;
+      return direction === "asc" ? (da < db ? -1 : 1) : (da < db ? 1 : -1);
+    }
+
+    // Normalize strings
+    if (typeof va === "string") va = va.toLowerCase();
+    if (typeof vb === "string") vb = vb.toLowerCase();
+
+    if (va === vb) return 0;
+    if (va === undefined || va === null) return direction === "asc" ? 1 : -1;
+    if (vb === undefined || vb === null) return direction === "asc" ? -1 : 1;
+
+    return direction === "asc" ? (va < vb ? -1 : 1) : (va < vb ? 1 : -1);
+  };
+
+  const toggleSort = (state: { key: string; direction: "asc" | "desc" }, setter: (s: { key: string; direction: "asc" | "desc" }) => void, key: string) => {
+    if (state.key === key) {
+      setter({ key, direction: state.direction === "asc" ? "desc" : "asc" });
+    } else {
+      setter({ key, direction: "asc" });
+    }
+  };
   
   const [filterState, setFilterState] = useState<FilterState>({
     season: "2025",
@@ -210,6 +257,12 @@ export function DashboardPage() {
       setRehabTablePage(0);
       setMaintenanceTablePage(0);
     }
+    if (dashboardType === "phs-injury-report") {
+      setPhsPlayerDetailsPage(0);
+      setPhsPlayerInjuriesPage(0);
+      setPhsActivityLogPage(0);
+      setPhsPlayerSummaryInjuriesPage(0);
+    }
   }, [dashboardType, lookerFilterValues, selectedTab]);
 
   // Filtered data for Rehab dashboard
@@ -260,8 +313,8 @@ export function DashboardPage() {
       : 0;
     
     // Get top exercises and modalities
-    const topExercises = getTopExercises(filteredRehabSessions, 10);
-    const topModalities = getTopModalities(filteredRehabSessions, 10);
+    const topExercises = getTopExercises(filteredRehabSessions, 5);
+    const topModalities = getTopModalities(filteredRehabSessions, 5);
     
     // Session counts over time - aggregate by date
     const sessionsByDate = filteredRehabSessions.reduce((acc, session) => {
@@ -691,6 +744,38 @@ export function DashboardPage() {
     };
   }, [dashboardType, selectedTab, filteredPhsData, filteredActivityLogData, lookerFilterValues.playerName]);
 
+  // Sorted datasets for PHS tables
+  const sortedPhsPlayerDetails = useMemo(() => {
+    if (!phsChartData) return [];
+    const arr = [...phsChartData.playerDetails];
+    arr.sort((a, b) => compareValues(a, b, phsPlayerDetailsSort.key, phsPlayerDetailsSort.direction));
+    return arr;
+  }, [phsChartData, phsPlayerDetailsSort]);
+
+  const sortedActivityPlayerInjuries = useMemo(() => {
+    const arr = (activityReportChartData?.playerInjuries || []).slice();
+    arr.sort((a, b) => compareValues(a, b, phsPlayerInjuriesSort.key, phsPlayerInjuriesSort.direction));
+    return arr;
+  }, [activityReportChartData, phsPlayerInjuriesSort]);
+
+  const sortedFilteredActivityLog = useMemo(() => {
+    const arr = (filteredActivityLogData || []).slice();
+    arr.sort((a, b) => compareValues(a, b, phsActivityLogSort.key, phsActivityLogSort.direction));
+    return arr;
+  }, [filteredActivityLogData, phsActivityLogSort]);
+
+  const sortedPlayerSummaryInjuries = useMemo(() => {
+    const arr = (playerSummaryChartData?.injuryRecords || []).slice();
+    arr.sort((a, b) => compareValues(a, b, phsPlayerSummaryInjuriesSort.key, phsPlayerSummaryInjuriesSort.direction));
+    return arr;
+  }, [playerSummaryChartData, phsPlayerSummaryInjuriesSort]);
+
+  const sortedPlayerSummaryActivityLog = useMemo(() => {
+    const arr = (playerSummaryChartData?.activityLog || []).slice();
+    arr.sort((a, b) => compareValues(a, b, phsPlayerSummaryActivityLogSort.key, phsPlayerSummaryActivityLogSort.direction));
+    return arr;
+  }, [playerSummaryChartData, phsPlayerSummaryActivityLogSort]);
+
   const dashboardTitle = dashboardType 
     ? dashboardTitles[dashboardType] || "Dashboard"
     : "Dashboard";
@@ -1074,7 +1159,7 @@ export function DashboardPage() {
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12, md: 6 }}>
                         <HorizontalBarChartCard
-                          title="Top 10 Rehab Exercises"
+                          title="Top 5 Rehab Exercises"
                           data={rehabChartData.topExercises}
                           height={350}
                           valueLabel="Sessions"
@@ -1082,7 +1167,7 @@ export function DashboardPage() {
                       </Grid>
                       <Grid size={{ xs: 12, md: 6 }}>
                         <HorizontalBarChartCard
-                          title="Top 10 Rehab Modalities"
+                          title="Top 5 Rehab Modalities"
                           data={rehabChartData.topModalities}
                           height={350}
                           valueLabel="Sessions"
@@ -1258,7 +1343,7 @@ export function DashboardPage() {
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12, md: 6 }}>
                         <HorizontalBarChartCard
-                          title="Top 10 Maintenance Exercises"
+                          title="Top 5 Maintenance Exercises"
                           data={rehabChartData.topExercises}
                           height={350}
                           valueLabel="Sessions"
@@ -1266,7 +1351,7 @@ export function DashboardPage() {
                       </Grid>
                       <Grid size={{ xs: 12, md: 6 }}>
                         <HorizontalBarChartCard
-                          title="Top 10 Maintenance Modalities"
+                          title="Top 5 Maintenance Modalities"
                           data={rehabChartData.topModalities}
                           height={350}
                           valueLabel="Sessions"
@@ -2041,44 +2126,67 @@ export function DashboardPage() {
                           >
                             Player Detail
                           </Typography>
-                          <TableContainer sx={{ maxHeight: 600 }}>
+                              <TableContainer sx={{ maxHeight: 600 }}>
                             <Table stickyHeader>
                               <TableHead>
                                 <TableRow>
-                                  <TableCell>Player Name</TableCell>
-                                  <TableCell>Position</TableCell>
-                                  <TableCell>Injury Date</TableCell>
-                                  <TableCell>Injury Category</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'playerName')}>
+                                    Player Name{phsPlayerDetailsSort.key === 'playerName' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'position')}>
+                                    Position{phsPlayerDetailsSort.key === 'position' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'injuryDate')}>
+                                    Injury Date{phsPlayerDetailsSort.key === 'injuryDate' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'injuryCategory')}>
+                                    Injury Category{phsPlayerDetailsSort.key === 'injuryCategory' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
                                   <TableCell>Side</TableCell>
                                   <TableCell>Clinical Impression</TableCell>
                                   <TableCell>Team Activity</TableCell>
-                                  <TableCell align="right">Days Missed</TableCell>
-                                  <TableCell align="right">Missed Games</TableCell>
+                                  <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'daysMissed')}>
+                                    Days Missed{phsPlayerDetailsSort.key === 'daysMissed' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerDetailsSort, setPhsPlayerDetailsSort, 'missedGames')}>
+                                    Missed Games{phsPlayerDetailsSort.key === 'missedGames' ? (phsPlayerDetailsSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {phsChartData.playerDetails.map((row) => (
-                                  <TableRow key={row.id} hover>
-                                    <TableCell>{row.playerName}</TableCell>
-                                    <TableCell>{row.position}</TableCell>
-                                    <TableCell>
-                                      {new Date(row.injuryDate).toLocaleDateString('en-GB', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric'
-                                      })}
-                                    </TableCell>
-                                    <TableCell>{row.injuryCategory}</TableCell>
-                                    <TableCell>{row.side}</TableCell>
-                                    <TableCell>{row.clinicalImpression}</TableCell>
-                                    <TableCell>{row.teamActivity}</TableCell>
-                                    <TableCell align="right">{row.daysMissed}</TableCell>
-                                    <TableCell align="right">{row.missedGames}</TableCell>
-                                  </TableRow>
-                                ))}
+                                {sortedPhsPlayerDetails
+                                  .slice(phsPlayerDetailsPage * phsPlayerDetailsRowsPerPage, phsPlayerDetailsPage * phsPlayerDetailsRowsPerPage + phsPlayerDetailsRowsPerPage)
+                                  .map((row) => (
+                                    <TableRow key={row.id} hover>
+                                      <TableCell>{row.playerName}</TableCell>
+                                      <TableCell>{row.position}</TableCell>
+                                      <TableCell>
+                                        {new Date(row.injuryDate).toLocaleDateString('en-GB', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric'
+                                        })}
+                                      </TableCell>
+                                      <TableCell>{row.injuryCategory}</TableCell>
+                                      <TableCell>{row.side}</TableCell>
+                                      <TableCell>{row.clinicalImpression}</TableCell>
+                                      <TableCell>{row.teamActivity}</TableCell>
+                                      <TableCell align="right">{row.daysMissed}</TableCell>
+                                      <TableCell align="right">{row.missedGames}</TableCell>
+                                    </TableRow>
+                                  ))}
                               </TableBody>
                             </Table>
                           </TableContainer>
+                          <TablePagination
+                            component="div"
+                            count={phsChartData.playerDetails.length}
+                            page={phsPlayerDetailsPage}
+                            onPageChange={(_e, newPage) => setPhsPlayerDetailsPage(newPage)}
+                            rowsPerPage={phsPlayerDetailsRowsPerPage}
+                            onRowsPerPageChange={(e) => { setPhsPlayerDetailsRowsPerPage(parseInt((e.target as HTMLInputElement).value, 10)); setPhsPlayerDetailsPage(0); }}
+                            rowsPerPageOptions={[5, 10, 25, 50]}
+                          />
                         </Paper>
                       </Grid>
                     </Grid>
@@ -2124,23 +2232,37 @@ export function DashboardPage() {
                           >
                             Player Injuries
                           </Typography>
-                          <TableContainer sx={{ maxHeight: 500 }}>
-                            <Table stickyHeader>
+                                  <TableContainer sx={{ maxHeight: 500 }}>
+                                <Table stickyHeader>
                               <TableHead>
                                 <TableRow>
-                                  <TableCell>Player</TableCell>
-                                  <TableCell>Position</TableCell>
-                                  <TableCell>Body Part</TableCell>
-                                  <TableCell>Injury Category</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'playerName')}>
+                                    Player{phsPlayerInjuriesSort.key === 'playerName' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'position')}>
+                                    Position{phsPlayerInjuriesSort.key === 'position' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'bodyPart')}>
+                                    Body Part{phsPlayerInjuriesSort.key === 'bodyPart' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'injuryCategory')}>
+                                    Injury Category{phsPlayerInjuriesSort.key === 'injuryCategory' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
                                   <TableCell>Primary Clinical Impression</TableCell>
-                                  <TableCell>Season</TableCell>
-                                  <TableCell align="right">Missed Games</TableCell>
-                                  <TableCell align="right">Missed Practices</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'season')}>
+                                    Season{phsPlayerInjuriesSort.key === 'season' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'missedGames')}>
+                                    Missed Games{phsPlayerInjuriesSort.key === 'missedGames' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
+                                  <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerInjuriesSort, setPhsPlayerInjuriesSort, 'missedPractices')}>
+                                    Missed Practices{phsPlayerInjuriesSort.key === 'missedPractices' ? (phsPlayerInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}
+                                  </TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {activityReportChartData?.playerInjuries
-                                  .slice(0, 100)
+                                {sortedActivityPlayerInjuries
+                                  .slice(phsPlayerInjuriesPage * phsPlayerInjuriesRowsPerPage, phsPlayerInjuriesPage * phsPlayerInjuriesRowsPerPage + phsPlayerInjuriesRowsPerPage)
                                   .map((row, idx) => (
                                     <TableRow key={`${row.playerName}-${idx}`} hover>
                                       <TableCell>{row.playerName}</TableCell>
@@ -2156,11 +2278,15 @@ export function DashboardPage() {
                               </TableBody>
                             </Table>
                           </TableContainer>
-                          {(activityReportChartData?.playerInjuries.length || 0) > 100 && (
-                            <Typography variant="caption" sx={{ mt: 2, display: "block", color: "var(--text-secondary)" }}>
-                              Showing first 100 of {activityReportChartData?.playerInjuries.length} records
-                            </Typography>
-                          )}
+                          <TablePagination
+                            component="div"
+                            count={activityReportChartData?.playerInjuries.length || 0}
+                            page={phsPlayerInjuriesPage}
+                            onPageChange={(_e, newPage) => setPhsPlayerInjuriesPage(newPage)}
+                            rowsPerPage={phsPlayerInjuriesRowsPerPage}
+                            onRowsPerPageChange={(e) => { setPhsPlayerInjuriesRowsPerPage(parseInt((e.target as HTMLInputElement).value, 10)); setPhsPlayerInjuriesPage(0); }}
+                            rowsPerPageOptions={[5, 10, 25, 50]}
+                          />
                         </Paper>
                       </Grid>
                     </Grid>
@@ -2213,45 +2339,51 @@ export function DashboardPage() {
                             <Table stickyHeader>
                               <TableHead>
                                 <TableRow>
-                                  <TableCell>Player</TableCell>
-                                  <TableCell>Position</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsActivityLogSort, setPhsActivityLogSort, 'playerName')}>Player{phsActivityLogSort.key === 'playerName' ? (phsActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsActivityLogSort, setPhsActivityLogSort, 'position')}>Position{phsActivityLogSort.key === 'position' ? (phsActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                   <TableCell>Reason</TableCell>
                                   <TableCell>Body Part</TableCell>
                                   <TableCell>Injury Type</TableCell>
                                   <TableCell>Injury Category</TableCell>
                                   <TableCell>Primary Clinical Impression</TableCell>
-                                  <TableCell>Activity Date</TableCell>
+                                  <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsActivityLogSort, setPhsActivityLogSort, 'activityDate')}>Activity Date{phsActivityLogSort.key === 'activityDate' ? (phsActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                   <TableCell>Event</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {filteredActivityLogData.slice(0, 200).map((entry) => (
-                                  <TableRow key={entry.id} hover>
-                                    <TableCell>{entry.playerName}</TableCell>
-                                    <TableCell>{entry.position}</TableCell>
-                                    <TableCell>{entry.reason}</TableCell>
-                                    <TableCell>{entry.bodyPart}</TableCell>
-                                    <TableCell>{entry.injuryType}</TableCell>
-                                    <TableCell>{entry.injuryCategory}</TableCell>
-                                    <TableCell>{entry.clinicalImpression}</TableCell>
-                                    <TableCell>
-                                      {new Date(entry.activityDate).toLocaleDateString('en-GB', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric'
-                                      })}
-                                    </TableCell>
-                                    <TableCell>{entry.event}</TableCell>
-                                  </TableRow>
-                                ))}
+                                {sortedFilteredActivityLog
+                                  .slice(phsActivityLogPage * phsActivityLogRowsPerPage, phsActivityLogPage * phsActivityLogRowsPerPage + phsActivityLogRowsPerPage)
+                                  .map((entry) => (
+                                    <TableRow key={entry.id} hover>
+                                      <TableCell>{entry.playerName}</TableCell>
+                                      <TableCell>{entry.position}</TableCell>
+                                      <TableCell>{entry.reason}</TableCell>
+                                      <TableCell>{entry.bodyPart}</TableCell>
+                                      <TableCell>{entry.injuryType}</TableCell>
+                                      <TableCell>{entry.injuryCategory}</TableCell>
+                                      <TableCell>{entry.clinicalImpression}</TableCell>
+                                      <TableCell>
+                                        {new Date(entry.activityDate).toLocaleDateString('en-GB', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric'
+                                        })}
+                                      </TableCell>
+                                      <TableCell>{entry.event}</TableCell>
+                                    </TableRow>
+                                  ))}
                               </TableBody>
                             </Table>
                           </TableContainer>
-                          {filteredActivityLogData.length > 200 && (
-                            <Typography variant="caption" sx={{ mt: 2, display: "block", color: "var(--text-secondary)" }}>
-                              Showing first 200 of {filteredActivityLogData.length} records
-                            </Typography>
-                          )}
+                          <TablePagination
+                            component="div"
+                            count={filteredActivityLogData.length}
+                            page={phsActivityLogPage}
+                            onPageChange={(_e, newPage) => setPhsActivityLogPage(newPage)}
+                            rowsPerPage={phsActivityLogRowsPerPage}
+                            onRowsPerPageChange={(e) => { setPhsActivityLogRowsPerPage(parseInt((e.target as HTMLInputElement).value, 10)); setPhsActivityLogPage(0); }}
+                            rowsPerPageOptions={[5, 10, 25, 50]}
+                          />
                         </Paper>
                       </Grid>
                     </Grid>
@@ -2493,44 +2625,55 @@ export function DashboardPage() {
                                 <Table stickyHeader>
                                   <TableHead>
                                     <TableRow>
-                                      <TableCell>Player Name</TableCell>
-                                      <TableCell>Club</TableCell>
-                                      <TableCell>Injury Date</TableCell>
-                                      <TableCell>Injury Category</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'playerName')}>Player Name{phsPlayerSummaryInjuriesSort.key === 'playerName' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'teamAbbr')}>Club{phsPlayerSummaryInjuriesSort.key === 'teamAbbr' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'injuryDate')}>Injury Date{phsPlayerSummaryInjuriesSort.key === 'injuryDate' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'injuryType')}>Injury Category{phsPlayerSummaryInjuriesSort.key === 'injuryType' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                       <TableCell>Clinical Impression</TableCell>
                                       <TableCell>Primary Mechanism</TableCell>
                                       <TableCell>Body Part</TableCell>
                                       <TableCell>Team Activity</TableCell>
-                                      <TableCell align="right">Missed Days</TableCell>
-                                      <TableCell align="right">Missed Games</TableCell>
+                                      <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'daysOut')}>Missed Days{phsPlayerSummaryInjuriesSort.key === 'daysOut' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                      <TableCell align="right" sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryInjuriesSort, setPhsPlayerSummaryInjuriesSort, 'missedGames')}>Missed Games{phsPlayerSummaryInjuriesSort.key === 'missedGames' ? (phsPlayerSummaryInjuriesSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                       <TableCell align="right">Missed Practices</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {(playerSummaryChartData.injuryRecords || []).map((record) => (
-                                      <TableRow key={record.id} hover>
-                                        <TableCell>{record.playerName}</TableCell>
-                                        <TableCell>{record.teamAbbr}</TableCell>
-                                        <TableCell>
-                                          {new Date(record.injuryDate).toLocaleDateString('en-GB', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric'
-                                          })}
-                                        </TableCell>
-                                        <TableCell>{record.injuryType}</TableCell>
-                                        <TableCell>{record.clinicalImpression || "N/A"}</TableCell>
-                                        <TableCell>{record.mechanismOfInjury}</TableCell>
-                                        <TableCell>{record.bodyPart || "N/A"}</TableCell>
-                                        <TableCell>{record.teamActivity}</TableCell>
-                                        <TableCell align="right">{record.daysOut}</TableCell>
-                                        <TableCell align="right">{record.missedGames || 0}</TableCell>
-                                        <TableCell align="right">{Math.floor((record.daysOut / 7) * 5)}</TableCell>
-                                      </TableRow>
-                                    ))}
+                                    {sortedPlayerSummaryInjuries
+                                      .slice(phsPlayerSummaryInjuriesPage * phsPlayerSummaryInjuriesRowsPerPage, phsPlayerSummaryInjuriesPage * phsPlayerSummaryInjuriesRowsPerPage + phsPlayerSummaryInjuriesRowsPerPage)
+                                      .map((record) => (
+                                        <TableRow key={record.id} hover>
+                                          <TableCell>{record.playerName}</TableCell>
+                                          <TableCell>{record.teamAbbr}</TableCell>
+                                          <TableCell>
+                                            {new Date(record.injuryDate).toLocaleDateString('en-GB', {
+                                              day: '2-digit',
+                                              month: '2-digit',
+                                              year: 'numeric'
+                                            })}
+                                          </TableCell>
+                                          <TableCell>{record.injuryType}</TableCell>
+                                          <TableCell>{record.clinicalImpression || "N/A"}</TableCell>
+                                          <TableCell>{record.mechanismOfInjury}</TableCell>
+                                          <TableCell>{record.bodyPart || "N/A"}</TableCell>
+                                          <TableCell>{record.teamActivity}</TableCell>
+                                          <TableCell align="right">{record.daysOut}</TableCell>
+                                          <TableCell align="right">{record.missedGames || 0}</TableCell>
+                                          <TableCell align="right">{Math.floor((record.daysOut / 7) * 5)}</TableCell>
+                                        </TableRow>
+                                      ))}
                                   </TableBody>
                                 </Table>
                               </TableContainer>
+                              <TablePagination
+                                component="div"
+                                count={(playerSummaryChartData.injuryRecords || []).length}
+                                page={phsPlayerSummaryInjuriesPage}
+                                onPageChange={(_e, newPage) => setPhsPlayerSummaryInjuriesPage(newPage)}
+                                rowsPerPage={phsPlayerSummaryInjuriesRowsPerPage}
+                                onRowsPerPageChange={(e) => { setPhsPlayerSummaryInjuriesRowsPerPage(parseInt((e.target as HTMLInputElement).value, 10)); setPhsPlayerSummaryInjuriesPage(0); }}
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                              />
                               {(playerSummaryChartData.injuryRecords || []).length === 0 && (
                                 <Typography variant="body2" sx={{ mt: 2, textAlign: "center", color: "var(--text-secondary)" }}>
                                   No injury records found for this player with the current filters
@@ -2566,40 +2709,51 @@ export function DashboardPage() {
                                 <Table stickyHeader>
                                   <TableHead>
                                     <TableRow>
-                                      <TableCell>Player</TableCell>
-                                      <TableCell>Position</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryActivityLogSort, setPhsPlayerSummaryActivityLogSort, 'playerName')}>Player{phsPlayerSummaryActivityLogSort.key === 'playerName' ? (phsPlayerSummaryActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryActivityLogSort, setPhsPlayerSummaryActivityLogSort, 'position')}>Position{phsPlayerSummaryActivityLogSort.key === 'position' ? (phsPlayerSummaryActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                       <TableCell>Reason</TableCell>
                                       <TableCell>Body Part</TableCell>
                                       <TableCell>Injury Type</TableCell>
                                       <TableCell>Injury Category</TableCell>
                                       <TableCell>Primary Clinical Impression</TableCell>
-                                      <TableCell>Activity Date</TableCell>
+                                      <TableCell sx={{ cursor: 'pointer' }} onClick={() => toggleSort(phsPlayerSummaryActivityLogSort, setPhsPlayerSummaryActivityLogSort, 'activityDate')}>Activity Date{phsPlayerSummaryActivityLogSort.key === 'activityDate' ? (phsPlayerSummaryActivityLogSort.direction === 'asc' ? ' ▲' : ' ▼') : ''}</TableCell>
                                       <TableCell>Event</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {(playerSummaryChartData.activityLog || []).map((entry) => (
-                                      <TableRow key={entry.id} hover>
-                                        <TableCell>{entry.playerName}</TableCell>
-                                        <TableCell>{entry.position}</TableCell>
-                                        <TableCell>{entry.reason}</TableCell>
-                                        <TableCell>{entry.bodyPart}</TableCell>
-                                        <TableCell>{entry.injuryType}</TableCell>
-                                        <TableCell>{entry.injuryCategory}</TableCell>
-                                        <TableCell>{entry.clinicalImpression}</TableCell>
-                                        <TableCell>
-                                          {new Date(entry.activityDate).toLocaleDateString('en-GB', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric'
-                                          })}
-                                        </TableCell>
-                                        <TableCell>{entry.event}</TableCell>
-                                      </TableRow>
-                                    ))}
+                                    {sortedPlayerSummaryActivityLog
+                                      .slice(phsActivityLogPage * phsActivityLogRowsPerPage, phsActivityLogPage * phsActivityLogRowsPerPage + phsActivityLogRowsPerPage)
+                                      .map((entry) => (
+                                        <TableRow key={entry.id} hover>
+                                          <TableCell>{entry.playerName}</TableCell>
+                                          <TableCell>{entry.position}</TableCell>
+                                          <TableCell>{entry.reason}</TableCell>
+                                          <TableCell>{entry.bodyPart}</TableCell>
+                                          <TableCell>{entry.injuryType}</TableCell>
+                                          <TableCell>{entry.injuryCategory}</TableCell>
+                                          <TableCell>{entry.clinicalImpression}</TableCell>
+                                          <TableCell>
+                                            {new Date(entry.activityDate).toLocaleDateString('en-GB', {
+                                              day: '2-digit',
+                                              month: '2-digit',
+                                              year: 'numeric'
+                                            })}
+                                          </TableCell>
+                                          <TableCell>{entry.event}</TableCell>
+                                        </TableRow>
+                                      ))}
                                   </TableBody>
                                 </Table>
                               </TableContainer>
+                              <TablePagination
+                                component="div"
+                                count={(playerSummaryChartData.activityLog || []).length}
+                                page={phsActivityLogPage}
+                                onPageChange={(_e, newPage) => setPhsActivityLogPage(newPage)}
+                                rowsPerPage={phsActivityLogRowsPerPage}
+                                onRowsPerPageChange={(e) => { setPhsActivityLogRowsPerPage(parseInt((e.target as HTMLInputElement).value, 10)); setPhsActivityLogPage(0); }}
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                              />
                               {(playerSummaryChartData.activityLog || []).length === 0 && (
                                 <Typography variant="body2" sx={{ mt: 2, textAlign: "center", color: "var(--text-secondary)" }}>
                                   No activity log entries found for this player with the current filters

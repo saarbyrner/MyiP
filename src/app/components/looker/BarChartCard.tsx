@@ -26,6 +26,7 @@ interface BarChartCardProps {
   xAxisKey: string;
   color?: string;
   height?: number;
+  valueLabel?: string;
 }
 
 export function BarChartCard({
@@ -35,6 +36,7 @@ export function BarChartCard({
   xAxisKey,
   color,
   height = 300,
+  valueLabel,
 }: BarChartCardProps) {
   const colors = getChartColorValues();
   const barColor = color || colors.blueLight;
