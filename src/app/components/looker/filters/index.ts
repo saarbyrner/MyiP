@@ -5,6 +5,7 @@ export { LookerFilterLabel } from "./LookerFilterLabel";
 export { LookerSelect } from "./LookerSelect";
 export { LookerMultiSelect } from "./LookerMultiSelect";
 export { LookerBooleanToggle } from "./LookerBooleanToggle";
+export { LookerDateRangePicker } from "./LookerDateRangePicker";
 export { LookerFilterBar, useLookerFilters } from "./LookerFilterBar";
 
 // Re-export types

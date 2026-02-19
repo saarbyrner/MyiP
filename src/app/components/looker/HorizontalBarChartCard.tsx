@@ -30,6 +30,8 @@ interface HorizontalBarChartCardProps {
   data: HorizontalBarData[];
   height?: number;
   maxValue?: number;
+  xAxisLabel?: string;
+  valueLabel?: string;
 }
 
 export function HorizontalBarChartCard({
@@ -37,6 +39,8 @@ export function HorizontalBarChartCard({
   data,
   height = 300,
   maxValue,
+  xAxisLabel,
+  valueLabel = "Count",
 }: HorizontalBarChartCardProps) {
   return (
     <Paper
@@ -69,15 +73,15 @@ export function HorizontalBarChartCard({
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+            margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
           >
             <CartesianGrid {...cartesianGridConfig} horizontal={false} />
             <XAxis
               type="number"
               domain={[0, maxValue || "auto"]}
               {...xAxisConfig}
-              label={{
-                value: "Missed Time Injuries",
+              label={xAxisLabel ? {
+                value: xAxisLabel,
                 position: "insideBottom",
                 offset: -5,
                 style: {
@@ -85,17 +89,17 @@ export function HorizontalBarChartCard({
                   fontSize: 12,
                   fill: "var(--chart-axis-text)",
                 },
-              }}
+              } : undefined}
             />
             <YAxis
               type="category"
               dataKey="category"
               {...yAxisConfig}
-              width={110}
+              width={150}
             />
             <Tooltip {...tooltipConfig} />
             <Legend {...legendConfig} content={ChartLegendContent} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}

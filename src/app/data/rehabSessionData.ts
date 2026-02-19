@@ -7,6 +7,7 @@
 
 import { INJURY_RECORDS, InjuryRecord } from "./mockInjuryData";
 import { getImageForPlayer } from "@/app/utils/playerImages";
+import { getChartColor } from "@/app/components/looker/chartConfig";
 
 // ==========================================
 // TYPES
@@ -47,6 +48,7 @@ export interface RehabSession {
   week: number; // NFL week (0=preseason, 1-18=regular, 19+=postseason)
   seasonType: string; // "Preseason" | "Regular Season" | "Postseason"
   daysOutSoFar: number; // Days into injury at time of this session
+  teamId: string; // From injury record
   team: string; // From injury record
 }
 
@@ -334,6 +336,7 @@ function generateSession(
     week: calculateWeek(sessionDate, injury.season),
     seasonType: calculateSeasonType(sessionDate),
     daysOutSoFar: daysSinceInjury,
+    teamId: injury.teamId.toString(),
     team: injury.teamName,
   };
 }
@@ -885,6 +888,114 @@ export function aggregateInjuriesByTeam(sessions: RehabSession[]): Array<{
       key !== "team" && typeof val === "number" ? sum + val : sum, 0 as number);
     return bTotal - aTotal;
   });
+}
+
+/**
+ * Get top N items from aggregated data with remaining items grouped as "Others"
+ * Useful for exercise/modality breakdown charts with too many unique values
+ */
+export function getTop10WithOthers<T extends Record<string, any>>(
+  data: T[],
+  valueKey: keyof T,
+  labelKey: keyof T,
+  limit: number = 10
+): Array<{ category: string; value: number; color: string }> {
+  // Sort by value descending
+  const sorted = [...data].sort((a, b) => {
+    const aVal = typeof a[valueKey] === 'number' ? a[valueKey] : 0;
+    const bVal = typeof b[valueKey] === 'number' ? b[valueKey] : 0;
+    return bVal - aVal;
+  });
+
+  // Take top N
+  const topN = sorted.slice(0, limit);
+  const others = sorted.slice(limit);
+
+  // Sum remaining items
+  const othersValue = others.reduce((sum, item) => {
+    const val = typeof item[valueKey] === 'number' ? item[valueKey] : 0;
+    return sum + val;
+  }, 0);
+
+  // Build result with colors from centralized config
+  const result = topN.map((item, index) => ({
+    category: String(item[labelKey]),
+    value: typeof item[valueKey] === 'number' ? item[valueKey] : 0,
+    color: getChartColor(index + 1),
+  }));
+
+  // Add "Others" if there are remaining items (use gray - chart-6)
+  if (othersValue > 0) {
+    result.push({
+      category: 'Others',
+      value: othersValue,
+      color: getChartColor(6), // chart-6: gray for "Others"
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Aggregate exercise counts from sessions and return top 10 + others format
+ */
+export function getTopExercises(
+  sessions: RehabSession[],
+  limit: number = 10
+): Array<{ category: string; value: number; color: string }> {
+  const exerciseCounts: Record<string, number> = {};
+
+  sessions.forEach((session) => {
+    Object.entries(session.exercises).forEach(([exercise, count]) => {
+      if (count > 0) {
+        const formattedName = exercise
+          .replace(/([A-Z])/g, ' $1')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        exerciseCounts[formattedName] = (exerciseCounts[formattedName] || 0) + count;
+      }
+    });
+  });
+
+  const exerciseArray = Object.entries(exerciseCounts).map(([name, value]) => ({
+    category: name,
+    value,
+  }));
+
+  return getTop10WithOthers(exerciseArray, 'value', 'category', limit);
+}
+
+/**
+ * Aggregate modality counts from sessions and return top 10 + others format
+ */
+export function getTopModalities(
+  sessions: RehabSession[],
+  limit: number = 10
+): Array<{ category: string; value: number; color: string }> {
+  const modalityCounts: Record<string, number> = {};
+
+  sessions.forEach((session) => {
+    Object.entries(session.modalities).forEach(([modality, count]) => {
+      if (count > 0) {
+        const formattedName = modality
+          .replace(/([A-Z])/g, ' $1')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        modalityCounts[formattedName] = (modalityCounts[formattedName] || 0) + count;
+      }
+    });
+  });
+
+  const modalityArray = Object.entries(modalityCounts).map(([name, value]) => ({
+    category: name,
+    value,
+  }));
+
+  return getTop10WithOthers(modalityArray, 'value', 'category', limit);
 }
 
 // ==========================================

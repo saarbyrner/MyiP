@@ -17,8 +17,8 @@ const getCSSVar = (varName: string): string => {
 export const getChartColor = (index: number): string => {
   const colorIndex = ((index - 1) % 8) + 1;
   const color = getCSSVar(`--chart-${colorIndex}`);
-  // Fallback colors matching Looker palette from screenshots
-  const fallbacks = ['#5B9BD5', '#CC5BC4', '#ED7D31', '#70AD47', '#FFC000', '#A5A5A5', '#4472C4', '#264478'];
+  // Fallback colors - vibrant palette
+  const fallbacks = ['#3B8EDB', '#D946C6', '#F97316', '#22C55E', '#FACC15', '#A5A5A5', '#3B82F6', '#1E40AF'];
   return color || fallbacks[colorIndex - 1];
 };
 
@@ -157,23 +157,26 @@ export const getChartColorValues = () => ({
   background: getCSSVar('--chart-background') || '#FFFFFF',
   tooltipBg: getCSSVar('--chart-tooltip-bg') || '#FFFFFF',
   tooltipBorder: getCSSVar('--chart-tooltip-border') || '#CCCCCC',
-  blueLight: getCSSVar('--chart-blue-light') || '#9DC3E6',
-  blueMedium: getCSSVar('--chart-blue-medium') || '#5B9BD5',
-  blueDark: getCSSVar('--chart-blue-dark') || '#2F5597',
+  blueLight: getCSSVar('--chart-blue-light') || '#60A5FA',
+  blueMedium: getCSSVar('--chart-blue-medium') || '#3B82F6',
+  blueDark: getCSSVar('--chart-blue-dark') || '#2563EB',
+  pinkLight: getCSSVar('--chart-pink-light') || '#F472B6',
+  pinkMedium: getCSSVar('--chart-pink-medium') || '#EC4899',
+  pinkDark: getCSSVar('--chart-pink-dark') || '#DB2777',
   gaugeBackground: getCSSVar('--chart-gauge-background') || '#E8E8E8',
   gaugePrimary: getCSSVar('--chart-gauge-primary') || '#5B9BD5',
   tableBar1: getCSSVar('--chart-table-bar-1') || '#9DC3E6',
   tableBar2: getCSSVar('--chart-table-bar-2') || '#CC5BC4',
   tableBar3: getCSSVar('--chart-table-bar-3') || '#ED7D31',
   tableBar4: getCSSVar('--chart-table-bar-4') || '#70AD47',
-  chart1: getCSSVar('--chart-1') || '#5B9BD5',
-  chart2: getCSSVar('--chart-2') || '#CC5BC4',
-  chart3: getCSSVar('--chart-3') || '#ED7D31',
-  chart4: getCSSVar('--chart-4') || '#70AD47',
-  chart5: getCSSVar('--chart-5') || '#FFC000',
+  chart1: getCSSVar('--chart-1') || '#3B8EDB',
+  chart2: getCSSVar('--chart-2') || '#D946C6',
+  chart3: getCSSVar('--chart-3') || '#F97316',
+  chart4: getCSSVar('--chart-4') || '#22C55E',
+  chart5: getCSSVar('--chart-5') || '#FACC15',
   chart6: getCSSVar('--chart-6') || '#A5A5A5',
-  chart7: getCSSVar('--chart-7') || '#4472C4',
-  chart8: getCSSVar('--chart-8') || '#264478',
+  chart7: getCSSVar('--chart-7') || '#3B82F6',
+  chart8: getCSSVar('--chart-8') || '#1E40AF',
 });
 
 /**
@@ -190,6 +193,9 @@ export const chartVars = {
   blueLight: "var(--chart-blue-light)",
   blueMedium: "var(--chart-blue-medium)",
   blueDark: "var(--chart-blue-dark)",
+  pinkLight: "var(--chart-pink-light)",
+  pinkMedium: "var(--chart-pink-medium)",
+  pinkDark: "var(--chart-pink-dark)",
   gaugeBackground: "var(--chart-gauge-background)",
   gaugePrimary: "var(--chart-gauge-primary)",
   tableBar1: "var(--chart-table-bar-1)",

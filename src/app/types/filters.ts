@@ -41,7 +41,7 @@ export interface DashboardFilterConfig {
 
 /** Dynamic filter state - keys are dataKeys from FilterConfig */
 export interface DynamicFilterState {
-  [key: string]: string | string[] | boolean | null | undefined;
+  [key: string]: string | string[] | boolean | null | undefined | { startDate: string | null; endDate: string | null };
 }
 
 /** Props for the main filter bar component */
@@ -53,7 +53,7 @@ export interface LookerFilterBarProps {
   /** Current filter values */
   values: DynamicFilterState;
   /** Callback when any filter value changes */
-  onChange: (key: string, value: string | string[] | boolean | null) => void;
+  onChange: (key: string, value: string | string[] | boolean | null | { startDate: string | null; endDate: string | null }) => void;
   /** Callback to reset all filters */
   onReset?: () => void;
   /** Whether the filter bar is expanded */

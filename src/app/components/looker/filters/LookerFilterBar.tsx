@@ -5,6 +5,7 @@ import { cn } from "@/app/components/ui/utils";
 import { LookerSelect } from "./LookerSelect";
 import { LookerMultiSelect } from "./LookerMultiSelect";
 import { LookerBooleanToggle } from "./LookerBooleanToggle";
+import { LookerDateRangePicker } from "./LookerDateRangePicker";
 import type {
   FilterConfig,
   FilterOption,
@@ -127,6 +128,21 @@ export function LookerFilterBar({
           />
         );
 
+      case "date-range":
+        return (
+          <LookerDateRangePicker
+            key={filterConfig.id}
+            id={filterConfig.id}
+            label={filterConfig.label}
+            value={(currentValue as { startDate: string | null; endDate: string | null }) ?? null}
+            onChange={(val) => {
+              console.log('[LookerFilterBar] date-range onChange called with:', val);
+              onChange(filterConfig.dataKey, val);
+            }}
+            width={filterConfig.width}
+          />
+        );
+
       default:
         return null;
     }
@@ -211,7 +227,7 @@ export function useLookerFilters(config: FilterConfig[]) {
   const [values, setValues] = React.useState<DynamicFilterState>(getDefaultValues);
 
   const handleChange = React.useCallback(
-    (key: string, value: string | string[] | boolean | null) => {
+    (key: string, value: string | string[] | boolean | null | { startDate: string | null; endDate: string | null }) => {
       setValues((prev) => ({ ...prev, [key]: value }));
     },
     []

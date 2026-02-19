@@ -586,24 +586,90 @@ export const rehabLeagueTabFilters: FilterConfig[] = [
   },
 ];
 
+// ==========================================
+// NEW 2-TAB REHAB DASHBOARD FILTERS
+// ==========================================
+
+// Tab 0: Rehab Sessions (injury-related)
+export const rehabSessionsNewFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "player",
+    label: "Player",
+    type: "multi-select",
+    dataKey: "playerName",
+    optionsFromData: "playerName",
+    row: 1,
+    width: "250px",
+  },
+  {
+    id: "injuryType",
+    label: "Injury type",
+    type: "select",
+    dataKey: "injuryType",
+    options: INJURY_TYPE_OPTIONS,
+    row: 1,
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "date-range",
+    dataKey: "dateRange",
+    row: 1,
+    width: "280px",
+  },
+];
+
+// Tab 1: Maintenance Sessions (preventive care)
+export const maintenanceSessionsFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "player",
+    label: "Player",
+    type: "multi-select",
+    dataKey: "playerName",
+    optionsFromData: "playerName",
+    row: 1,
+    width: "250px",
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "date-range",
+    dataKey: "dateRange",
+    row: 1,
+    width: "280px",
+  },
+];
+
 /**
  * Get filter configuration for a specific rehab dashboard tab
- * @param tabIndex - 0: Player, 1: Sessions, 2: Club, 3: Injury, 4: League
+ * @param tabIndex - 0: Rehab Sessions, 1: Maintenance Sessions
  */
 export function getRehabFiltersForTab(tabIndex: number): FilterConfig[] {
   switch (tabIndex) {
     case 0:
-      return rehabPlayerTabFilters;
+      return rehabSessionsNewFilters;
     case 1:
-      return rehabSessionsTabFilters;
-    case 2:
-      return rehabClubTabFilters;
-    case 3:
-      return rehabInjuryTabFilters;
-    case 4:
-      return rehabLeagueTabFilters;
+      return maintenanceSessionsFilters;
     default:
-      return rehabFilters;
+      return rehabSessionsNewFilters;
   }
 };
 

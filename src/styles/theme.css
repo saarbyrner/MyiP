@@ -35,20 +35,25 @@
   --sidebar-border: var(--border-default);
   --sidebar-ring: var(--input-focus-ring);
   
-  /* Chart colors - Looker's professional palette (categorical) - From actual Looker screenshots */
-  --chart-1: #5B9BD5;  /* Looker light blue (primary bars) */
-  --chart-2: #CC5BC4;  /* Lavender/purple (lines) */
-  --chart-3: #ED7D31;  /* Looker orange */
-  --chart-4: #70AD47;  /* Looker green */  
-  --chart-5: #FFC000;  /* Looker yellow/gold */
+  /* Chart colors - More vibrant categorical palette for better visual impact */
+  --chart-1: #3B8EDB;  /* Vibrant blue (primary bars) */
+  --chart-2: #D946C6;  /* Vibrant magenta/purple (lines) */
+  --chart-3: #F97316;  /* Vibrant orange */
+  --chart-4: #22C55E;  /* Vibrant green */  
+  --chart-5: #FACC15;  /* Vibrant yellow/gold */
   --chart-6: #A5A5A5;  /* Medium gray */
-  --chart-7: #4472C4;  /* Looker deep blue */
-  --chart-8: #264478;  /* Dark navy */
+  --chart-7: #3B82F6;  /* Vibrant deep blue */
+  --chart-8: #1E40AF;  /* Deep navy */
   
   /* Blue spectrum (for single-series charts, gradients) */
-  --chart-blue-light: #9DC3E6;   /* Very light blue (bars in tables) */
-  --chart-blue-medium: #5B9BD5;  /* Looker standard blue */
-  --chart-blue-dark: #2F5597;    /* Dark blue */
+  --chart-blue-light: #60A5FA;   /* Vibrant light blue */
+  --chart-blue-medium: #3B82F6;  /* Vibrant medium blue */
+  --chart-blue-dark: #2563EB;    /* Vibrant dark blue */
+  
+  /* Pink/Magenta spectrum (for secondary series, emphasis) */
+  --chart-pink-light: #F472B6;   /* Vibrant light pink */
+  --chart-pink-medium: #EC4899;  /* Vibrant medium pink */
+  --chart-pink-dark: #DB2777;    /* Vibrant dark pink */
   
   /* Chart infrastructure */
   --chart-grid: #EEEEEE;         /* Very subtle grid (barely visible) */
@@ -71,11 +76,11 @@
   --chart-gauge-primary: #4A90E2;   /* Gauge fill color */
   --chart-gauge-background: #E8E8E8; /* Gauge background track */
   
-  /* Table bars (inline visualizations) */
-  --chart-table-bar-1: #7CB5EC;  /* Light blue */
-  --chart-table-bar-2: #B88FD9;  /* Light purple */
-  --chart-table-bar-3: #F4A582;  /* Light coral */
-  --chart-table-bar-4: #90CAF9;  /* Sky blue */
+  /* Table bars (inline visualizations) - vibrant palette */
+  --chart-table-bar-1: #60A5FA;  /* Vibrant light blue */
+  --chart-table-bar-2: #D946C6;  /* Vibrant magenta */
+  --chart-table-bar-3: #F97316;  /* Vibrant orange */
+  --chart-table-bar-4: #22C55E;  /* Vibrant green */
   
   /* Elevation */
   --elevation-sm: var(--shadow-sm);

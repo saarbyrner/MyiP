@@ -287,6 +287,14 @@ export function applyRehabFilters(
     }
   }
 
+  // Team filter
+  if (filters.teamId) {
+    const teamId = parseInt(filters.teamId as string);
+    if (!isNaN(teamId)) {
+      filtered = filtered.filter((r) => r.teamId === teamId);
+    }
+  }
+
   // Player filter (by name since dropdown shows names)
   if (filters.playerName) {
     filtered = filtered.filter((r) => r.playerName === filters.playerName);
@@ -325,28 +333,53 @@ export function applyRehabFilters(
     }
   }
 
-  // Date range filter (preset periods)
+  // Date range filter (preset periods or custom range)
   if (filters.dateRange) {
-    const today = new Date();
-    let startDate: Date | null = null;
+    // Check if it's a custom date range object
+    if (typeof filters.dateRange === 'object' && filters.dateRange !== null) {
+      const { startDate: startDateStr, endDate: endDateStr } = filters.dateRange as { startDate: string | null; endDate: string | null };
+      
+      if (startDateStr || endDateStr) {
+        filtered = filtered.filter((r) => {
+          const injuryDate = r.injuryDate;
+          
+          if (startDateStr && endDateStr) {
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            return injuryDate >= startDate && injuryDate <= endDate;
+          } else if (startDateStr) {
+            const startDate = new Date(startDateStr);
+            return injuryDate >= startDate;
+          } else if (endDateStr) {
+            const endDate = new Date(endDateStr);
+            return injuryDate <= endDate;
+          }
+          return true;
+        });
+      }
+    } else if (typeof filters.dateRange === 'string') {
+      // Preset period
+      const today = new Date();
+      let startDate: Date | null = null;
 
-    switch (filters.dateRange) {
-      case "last7":
-        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "last30":
-        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case "last90":
-        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case "thisYear":
-        startDate = new Date(today.getFullYear(), 0, 1);
-        break;
-    }
+      switch (filters.dateRange) {
+        case "last7":
+          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "last30":
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case "last90":
+          startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case "thisYear":
+          startDate = new Date(today.getFullYear(), 0, 1);
+          break;
+      }
 
-    if (startDate) {
-      filtered = filtered.filter((r) => r.injuryDate >= startDate!);
+      if (startDate) {
+        filtered = filtered.filter((r) => r.injuryDate >= startDate!);
+      }
     }
   }
 
@@ -391,9 +424,23 @@ export function filterRehabSessions(
     }
   }
 
-  // Player filter (by name since dropdown shows names)
+  // Team filter
+  if (filters.teamId) {
+    const teamId = filters.teamId as string;
+    filtered = filtered.filter((s) => s.teamId === teamId);
+  }
+
+  // Player filter (by name since dropdown shows names) - handles both single and multi-select
   if (filters.playerName) {
-    filtered = filtered.filter((s) => s.playerName === filters.playerName);
+    if (Array.isArray(filters.playerName)) {
+      // Multi-select: filter to players in the array
+      if (filters.playerName.length > 0) {
+        filtered = filtered.filter((s) => filters.playerName.includes(s.playerName));
+      }
+    } else {
+      // Single select: exact match
+      filtered = filtered.filter((s) => s.playerName === filters.playerName);
+    }
   }
 
   // Player filter by ID (fallback)
@@ -455,28 +502,57 @@ export function filterRehabSessions(
     filtered = filtered.filter((s) => s.seasonType === seasonType);
   }
 
-  // Date range filter
+  // Date range filter (preset periods or custom range)
   if (filters.dateRange) {
-    const today = new Date();
-    let startDate: Date | null = null;
+    console.log('[filterRehabSessions] dateRange filter:', filters.dateRange);
+    // Check if it's a custom date range object
+    if (typeof filters.dateRange === 'object' && filters.dateRange !== null) {
+      const { startDate: startDateStr, endDate: endDateStr } = filters.dateRange as { startDate: string | null; endDate: string | null };
+      console.log('[filterRehabSessions] custom range - start:', startDateStr, 'end:', endDateStr);
+      
+      if (startDateStr || endDateStr) {
+        const beforeCount = filtered.length;
+        filtered = filtered.filter((s) => {
+          const sessionDate = s.date;
+          
+          if (startDateStr && endDateStr) {
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            return sessionDate >= startDate && sessionDate <= endDate;
+          } else if (startDateStr) {
+            const startDate = new Date(startDateStr);
+            return sessionDate >= startDate;
+          } else if (endDateStr) {
+            const endDate = new Date(endDateStr);
+            return sessionDate <= endDate;
+          }
+          return true;
+        });
+        console.log('[filterRehabSessions] after date filter:', beforeCount, '->', filtered.length);
+      }
+    } else if (typeof filters.dateRange === 'string') {
+      // Preset period
+      const today = new Date();
+      let startDate: Date | null = null;
 
-    switch (filters.dateRange) {
-      case "last7":
-        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "last30":
-        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case "last90":
-        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case "thisYear":
-        startDate = new Date(today.getFullYear(), 0, 1);
-        break;
-    }
+      switch (filters.dateRange) {
+        case "last7":
+          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "last30":
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case "last90":
+          startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case "thisYear":
+          startDate = new Date(today.getFullYear(), 0, 1);
+          break;
+      }
 
-    if (startDate) {
-      filtered = filtered.filter((s) => s.date >= startDate!);
+      if (startDate) {
+        filtered = filtered.filter((s) => s.date >= startDate!);
+      }
     }
   }
 
