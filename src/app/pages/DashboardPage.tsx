@@ -1056,7 +1056,7 @@ export function DashboardPage() {
                       <Grid size={{ xs: 12, md: 4 }}>
                         <MetricCard
                           value={rehabChartData.avgDaysSinceInjury}
-                          label="Avg Rehab Length"
+                          label="Avg Rehab Length (days)"
                         />
                       </Grid>
                     </Grid>
