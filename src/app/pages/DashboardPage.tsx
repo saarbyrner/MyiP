@@ -283,12 +283,13 @@ export function DashboardPage() {
     console.log('[filteredRehabSessions] after filterRehabSessions:', sessions.length, 'sessions');
     
     // Filter by session type based on selected tab
-    // Tab 0: Rehab Sessions, Tab 1: Maintenance Sessions
-    if (selectedTab === 0) {
+    // Tab 0: Overview (All), Tab 1: Rehab Sessions, Tab 2: Maintenance Sessions
+    if (selectedTab === 1) {
       sessions = sessions.filter(s => s.sessionType === "rehab");
-    } else if (selectedTab === 1) {
+    } else if (selectedTab === 2) {
       sessions = sessions.filter(s => s.sessionType === "maintenance");
     }
+    // Tab 0 (Overview) shows all sessions - no sessionType filter
     console.log('[filteredRehabSessions] after tab filter:', sessions.length, 'sessions');
     
     return sessions;
@@ -1026,7 +1027,7 @@ export function DashboardPage() {
                   }}
                 >
                   {(dashboardType === "rehab"
-                    ? ["Rehab Sessions", "Maintenance Sessions"]
+                    ? ["Overview", "Rehab Sessions", "Maintenance Sessions"]
                     : dashboardType === "phs-injury-report"
                     ? ["Injury", "Activity Report", "Player Summary"]
                     : ["Season", "Position", "Team"]
@@ -1122,7 +1123,191 @@ export function DashboardPage() {
               {dashboardType === "rehab" && rehabChartData ? (
                 selectedTab === 0 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-                    {/* Tab 0: Rehab Sessions */}
+                    {/* Tab 0: Overview - Combined Sessions */}
+                    
+                    {/* Row 1: Summary Metrics */}
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.length}
+                          label="Total Sessions (All)"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.filter(s => s.sessionType === "rehab").length}
+                          label="Rehab Sessions"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.filter(s => s.sessionType === "maintenance").length}
+                          label="Maintenance Sessions"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={rehabChartData.uniquePlayerCount}
+                          label="Active Players"
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 2: Session Comparison and Ratio */}
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, md: 8 }}>
+                        <StackedBarChartCard
+                          title="Rehab vs Maintenance Session Volume"
+                          data={(() => {
+                            const dateGroups: Record<string, { rehab: number; maintenance: number }> = {};
+                            filteredRehabSessions.forEach(session => {
+                              const dateKey = session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              if (!dateGroups[dateKey]) {
+                                dateGroups[dateKey] = { rehab: 0, maintenance: 0 };
+                              }
+                              if (session.sessionType === "rehab") {
+                                dateGroups[dateKey].rehab++;
+                              } else {
+                                dateGroups[dateKey].maintenance++;
+                              }
+                            });
+                            return Object.entries(dateGroups)
+                              .map(([date, counts]) => ({
+                                date,
+                                Rehab: counts.rehab,
+                                Maintenance: counts.maintenance,
+                              }))
+                              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                              .slice(-30);
+                          })()}
+                          dataKeys={["Rehab", "Maintenance"]}
+                          xAxisKey="date"
+                          height={300}
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <DonutChartCard
+                          title="Rehab vs Maintenance Ratio"
+                          data={[
+                            { 
+                              name: "Rehab", 
+                              value: filteredRehabSessions.filter(s => s.sessionType === "rehab").length 
+                            },
+                            { 
+                              name: "Maintenance", 
+                              value: filteredRehabSessions.filter(s => s.sessionType === "maintenance").length 
+                            },
+                          ]}
+                          height={300}
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 3: Combined Player Summary Table */}
+                    <Paper sx={{ padding: "var(--spacing-4)" }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontFamily: "var(--font-family-base)", fontWeight: "var(--font-weight-semibold)" }}>
+                        Player Session Overview
+                      </Typography>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Player</TableCell>
+                              <TableCell>Rehab Sessions</TableCell>
+                              <TableCell>Maintenance Sessions</TableCell>
+                              <TableCell align="right">Total Sessions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(() => {
+                              const playerData = filteredRehabSessions.reduce((acc, session) => {
+                                if (!acc[session.playerName]) {
+                                  acc[session.playerName] = { rehab: 0, maintenance: 0 };
+                                }
+                                if (session.sessionType === "rehab") {
+                                  acc[session.playerName].rehab++;
+                                } else {
+                                  acc[session.playerName].maintenance++;
+                                }
+                                return acc;
+                              }, {} as Record<string, { rehab: number; maintenance: number }>);
+
+                              const playerArray = Object.entries(playerData)
+                                .map(([player, counts]) => ({
+                                  playerName: player,
+                                  rehabCount: counts.rehab,
+                                  maintenanceCount: counts.maintenance,
+                                  total: counts.rehab + counts.maintenance,
+                                }))
+                                .sort((a, b) => b.total - a.total);
+
+                              const maxRehab = Math.max(...playerArray.map(p => p.rehabCount));
+                              const maxMaintenance = Math.max(...playerArray.map(p => p.maintenanceCount));
+
+                              return playerArray.length > 0 ? (
+                                playerArray.map((row, index) => {
+                                  const rehabWidth = maxRehab > 0 ? (row.rehabCount / maxRehab) * 100 : 0;
+                                  const maintenanceWidth = maxMaintenance > 0 ? (row.maintenanceCount / maxMaintenance) * 100 : 0;
+                                  
+                                  return (
+                                    <TableRow key={index}>
+                                      <TableCell>{row.playerName}</TableCell>
+                                      <TableCell>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              width: `${rehabWidth}%`,
+                                              minWidth: "40px",
+                                              height: "24px",
+                                              backgroundColor: row.rehabCount === maxRehab ? "var(--chart-blue-dark)" : "var(--chart-blue-medium)",
+                                              borderRadius: "2px",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "flex-end",
+                                              paddingRight: "8px",
+                                            }}
+                                          />
+                                          <Typography variant="body2">{row.rehabCount}</Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              width: `${maintenanceWidth}%`,
+                                              minWidth: "40px",
+                                              height: "24px",
+                                              backgroundColor: row.maintenanceCount === maxMaintenance ? "var(--chart-pink-dark)" : "var(--chart-pink-light)",
+                                              borderRadius: "2px",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "flex-end",
+                                              paddingRight: "8px",
+                                            }}
+                                          />
+                                          <Typography variant="body2">{row.maintenanceCount}</Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell align="right">{row.total}</TableCell>
+                                    </TableRow>
+                                  );
+                                })
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} align="center" sx={{ color: "var(--text-secondary)" }}>
+                                    No session data available for the selected filters
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
+                  </Box>
+                ) : selectedTab === 1 ? (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
+                    {/* Tab 1: Rehab Sessions */}
                     
                     {/* Row 1: Three Metric Cards */}
                     <Grid container spacing={3}>
@@ -1293,9 +1478,9 @@ export function DashboardPage() {
                       />
                     )}
                   </Box>
-                ) : selectedTab === 1 ? (
+                ) : selectedTab === 2 ? (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-                    {/* Tab 1: Maintenance Sessions */}
+                    {/* Tab 2: Maintenance Sessions */}
                     
                     {/* Row 1: Three Metric Cards */}
                     <Grid container spacing={3}>
@@ -1436,6 +1621,190 @@ export function DashboardPage() {
                         }}
                         rowsPerPageOptions={[5, 10, 25, 50]}
                       />
+                    </Paper>
+                  </Box>
+                ) : selectedTab === 2 ? (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
+                    {/* Tab 2: Overview - Combined Sessions */}
+                    
+                    {/* Row 1: Summary Metrics */}
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.length}
+                          label="Total Sessions (All)"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.filter(s => s.sessionType === "rehab").length}
+                          label="Rehab Sessions"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={filteredRehabSessions.filter(s => s.sessionType === "maintenance").length}
+                          label="Maintenance Sessions"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 3 }}>
+                        <MetricCard
+                          value={rehabChartData.uniquePlayerCount}
+                          label="Active Players"
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 2: Session Comparison and Ratio */}
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, md: 8 }}>
+                        <StackedBarChartCard
+                          title="Rehab vs Maintenance Session Volume"
+                          data={(() => {
+                            const dateGroups: Record<string, { rehab: number; maintenance: number }> = {};
+                            filteredRehabSessions.forEach(session => {
+                              const dateKey = session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              if (!dateGroups[dateKey]) {
+                                dateGroups[dateKey] = { rehab: 0, maintenance: 0 };
+                              }
+                              if (session.sessionType === "rehab") {
+                                dateGroups[dateKey].rehab++;
+                              } else {
+                                dateGroups[dateKey].maintenance++;
+                              }
+                            });
+                            return Object.entries(dateGroups)
+                              .map(([date, counts]) => ({
+                                date,
+                                Rehab: counts.rehab,
+                                Maintenance: counts.maintenance,
+                              }))
+                              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                              .slice(-30);
+                          })()}
+                          dataKeys={["Rehab", "Maintenance"]}
+                          xAxisKey="date"
+                          height={300}
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <DonutChartCard
+                          title="Rehab vs Maintenance Ratio"
+                          data={[
+                            { 
+                              name: "Rehab", 
+                              value: filteredRehabSessions.filter(s => s.sessionType === "rehab").length 
+                            },
+                            { 
+                              name: "Maintenance", 
+                              value: filteredRehabSessions.filter(s => s.sessionType === "maintenance").length 
+                            },
+                          ]}
+                          height={300}
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 3: Combined Player Summary Table */}
+                    <Paper sx={{ padding: "var(--spacing-4)" }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontFamily: "var(--font-family-base)", fontWeight: "var(--font-weight-semibold)" }}>
+                        Player Session Overview
+                      </Typography>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Player</TableCell>
+                              <TableCell>Rehab Sessions</TableCell>
+                              <TableCell>Maintenance Sessions</TableCell>
+                              <TableCell align="right">Total Sessions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(() => {
+                              const playerData = filteredRehabSessions.reduce((acc, session) => {
+                                if (!acc[session.playerName]) {
+                                  acc[session.playerName] = { rehab: 0, maintenance: 0 };
+                                }
+                                if (session.sessionType === "rehab") {
+                                  acc[session.playerName].rehab++;
+                                } else {
+                                  acc[session.playerName].maintenance++;
+                                }
+                                return acc;
+                              }, {} as Record<string, { rehab: number; maintenance: number }>);
+
+                              const playerArray = Object.entries(playerData)
+                                .map(([player, counts]) => ({
+                                  playerName: player,
+                                  rehabCount: counts.rehab,
+                                  maintenanceCount: counts.maintenance,
+                                  total: counts.rehab + counts.maintenance,
+                                }))
+                                .sort((a, b) => b.total - a.total);
+
+                              const maxRehab = Math.max(...playerArray.map(p => p.rehabCount));
+                              const maxMaintenance = Math.max(...playerArray.map(p => p.maintenanceCount));
+
+                              return playerArray.length > 0 ? (
+                                playerArray.map((row, index) => {
+                                  const rehabWidth = maxRehab > 0 ? (row.rehabCount / maxRehab) * 100 : 0;
+                                  const maintenanceWidth = maxMaintenance > 0 ? (row.maintenanceCount / maxMaintenance) * 100 : 0;
+                                  
+                                  return (
+                                    <TableRow key={index}>
+                                      <TableCell>{row.playerName}</TableCell>
+                                      <TableCell>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              width: `${rehabWidth}%`,
+                                              minWidth: "40px",
+                                              height: "24px",
+                                              backgroundColor: row.rehabCount === maxRehab ? "var(--chart-blue-dark)" : "var(--chart-blue-medium)",
+                                              borderRadius: "2px",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "flex-end",
+                                              paddingRight: "8px",
+                                            }}
+                                          />
+                                          <Typography variant="body2">{row.rehabCount}</Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              width: `${maintenanceWidth}%`,
+                                              minWidth: "40px",
+                                              height: "24px",
+                                              backgroundColor: row.maintenanceCount === maxMaintenance ? "var(--chart-pink-dark)" : "var(--chart-pink-light)",
+                                              borderRadius: "2px",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "flex-end",
+                                              paddingRight: "8px",
+                                            }}
+                                          />
+                                          <Typography variant="body2">{row.maintenanceCount}</Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell align="right">{row.total}</TableCell>
+                                    </TableRow>
+                                  );
+                                })
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} align="center" sx={{ color: "var(--text-secondary)" }}>
+                                    No session data available for the selected filters
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </Paper>
                   </Box>
                 ) : null

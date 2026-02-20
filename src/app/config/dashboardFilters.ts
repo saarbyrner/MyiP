@@ -658,18 +658,50 @@ export const maintenanceSessionsFilters: FilterConfig[] = [
   },
 ];
 
+// Tab 2: Overview - Combined view with basic filters
+export const overviewSessionsFilters: FilterConfig[] = [
+  {
+    id: "season",
+    label: "Season",
+    type: "select",
+    dataKey: "season",
+    options: SEASON_OPTIONS,
+    defaultValue: "2025",
+    row: 1,
+  },
+  {
+    id: "player",
+    label: "Player",
+    type: "multi-select",
+    dataKey: "playerName",
+    optionsFromData: "playerName",
+    row: 1,
+    width: "250px",
+  },
+  {
+    id: "dateRange",
+    label: "Date range",
+    type: "date-range",
+    dataKey: "dateRange",
+    row: 1,
+    width: "280px",
+  },
+];
+
 /**
  * Get filter configuration for a specific rehab dashboard tab
- * @param tabIndex - 0: Rehab Sessions, 1: Maintenance Sessions
+ * @param tabIndex - 0: Overview, 1: Rehab Sessions, 2: Maintenance Sessions
  */
 export function getRehabFiltersForTab(tabIndex: number): FilterConfig[] {
   switch (tabIndex) {
     case 0:
-      return rehabSessionsNewFilters;
+      return overviewSessionsFilters;
     case 1:
+      return rehabSessionsNewFilters;
+    case 2:
       return maintenanceSessionsFilters;
     default:
-      return rehabSessionsNewFilters;
+      return overviewSessionsFilters;
   }
 };
 
